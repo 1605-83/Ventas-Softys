@@ -23,11 +23,11 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Archivo",system
 .wrap{max-width:1320px;margin:0 auto;padding:28px 20px 48px}
 header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px;border-bottom:3px solid var(--ink);padding-bottom:14px}
 h1{font-size:clamp(1.6rem,3.2vw,2.4rem);font-weight:800;margin:0;letter-spacing:-.02em;line-height:1.05}
-.titulo{flex:1 1 100%;display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;margin:0 0 6px;padding:16px 22px;background:#000;color:#fff;border:3px solid #000;border-radius:14px;box-shadow:7px 7px 0 #38B6FF;font-size:clamp(1.3rem,2.8vw,2.4rem);font-weight:900;text-transform:uppercase;letter-spacing:.01em;line-height:1.05}
-.titulo .t-marca{background:#38B6FF;color:#000;padding:4px 16px;border:3px solid #fff;border-radius:10px;transform:rotate(-2deg);box-shadow:3px 3px 0 #fff}
-.titulo .t-mes{margin-left:auto;font-size:.5em;font-weight:800;letter-spacing:.08em;padding:6px 14px;border:2px solid #38B6FF;border-radius:999px;color:#38B6FF}
+.titulo{flex:1 1 100%;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 0;margin:0 0 6px;padding:10px 18px;background:#0B4F8A;color:#fff;border-radius:8px;font-size:clamp(1.05rem,1.9vw,1.45rem);font-weight:700;letter-spacing:.02em;line-height:1.2}
+.titulo .t-marca{font-weight:900;color:#7FD0FF;text-transform:uppercase}
+.titulo .t-marca::before,.titulo .t-mes::before{content:"·";margin:0 .6em;color:rgba(255,255,255,.55);font-weight:400}
+.titulo .t-mes{font-weight:500;color:rgba(255,255,255,.85);text-transform:capitalize}
 .titulo .t-mes:empty{display:none}
-@media (max-width:640px){.titulo{padding:12px 14px}.titulo .t-mes{margin-left:0}}
 @media (min-width:900px){.titulo{flex-wrap:nowrap;white-space:nowrap}}
 .sub{margin:6px 0 0;font-size:.95rem;color:var(--ink2)}
 .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
