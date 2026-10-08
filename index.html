@@ -76,10 +76,12 @@ td input{width:84px;padding:4px 6px}
 .meter b{position:absolute;top:-2px;bottom:-2px;left:calc(100%/1.2);width:2px;background:var(--ink)}
 .muted{color:#5d6b5b}
 .solapas{margin-top:26px}
-.soltabs{display:flex;flex-wrap:wrap;gap:6px;border-bottom:2px solid var(--ink)}
-.soltabs button{background:var(--panel);color:var(--ink);border:1px solid var(--ink);border-bottom:none;border-radius:8px 8px 0 0;padding:8px 16px;font:inherit;font-weight:600;cursor:pointer;margin:0}
-.soltabs button[aria-selected=true]{background:var(--ink);color:var(--panel)}
-.solbody{border:1px solid var(--ink);border-top:none;border-radius:0 0 8px 8px;padding:14px;background:var(--panel)}
+.desp{margin-top:14px;border:1px solid var(--ink);border-radius:8px;background:var(--panel);overflow:hidden}
+.desp>summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--ink);color:#fff;font-weight:800;font-size:1.02rem}
+.desp>summary::-webkit-details-marker{display:none}
+.desp>summary::after{content:"▼";font-size:.8rem}
+.desp[open]>summary::after{content:"▲"}
+.solbody{padding:14px}
 .solbody .nnote{font-size:.85rem;margin:10px 0 8px;max-width:90ch}
 .solbody input[type=search]{width:100%;max-width:340px;margin-bottom:8px}
 .solbody select{font:inherit;padding:4px 8px;max-width:100%}
@@ -153,18 +155,20 @@ tr.ncr input[type=search]{width:100%;max-width:340px;margin-bottom:8px}
 </div>
 
 <section class="solapas">
-  <div class="soltabs" role="tablist">
-    <button type="button" role="tab" data-sol="nc" aria-selected="true">Clientes sin compra</button>
-    <button type="button" role="tab" data-sol="bul" aria-selected="false">Bultos por categoría</button>
-  </div>
-  <div class="solbody" id="solNC">
+  <details class="desp" id="solNC">
+  <summary>Clientes sin compra</summary>
+  <div class="solbody">
     <label>Vendedor <select id="ncSel" aria-label="Vendedor"></select></label>
     <div id="ncPanel"></div>
   </div>
-  <div class="solbody" id="solBul" hidden>
+  </details>
+  <details class="desp" id="solBul">
+  <summary>Bultos por categoría</summary>
+  <div class="solbody">
     <p class="nnote" style="margin-top:0">Bultos netos de devoluciones por categoría y vendedor (unidades ÷ unidades por bulto de cada artículo).</p>
     <div class="tbl"><table><thead id="bulHead"></thead><tbody id="bulBody"></tbody><tfoot id="bulFoot"></tfoot></table></div>
   </div>
+  </details>
 </section>
 
 <details class="paste" id="convBox" hidden>
@@ -472,10 +476,6 @@ function renderSol(rs){
   const tot = k => bc.reduce((s,x)=>s+(x.o[k]||0),0);
   $('bulFoot').innerHTML = `<tr><td class="l" colspan="2">Total (${bc.length} vendedores)</td>${keys.map(k=>`<td>${cB(tot(k[0]))}</td>`).join('')}<td>${cB(bc.reduce((s,x)=>s+x.t,0))}</td></tr>`;
 }
-document.querySelectorAll('[data-sol]').forEach(btn=>btn.addEventListener('click',()=>{
-  document.querySelectorAll('[data-sol]').forEach(x=>x.setAttribute('aria-selected', String(x===btn)));
-  $('solNC').hidden = btn.dataset.sol!=='nc'; $('solBul').hidden = btn.dataset.sol!=='bul';
-}));
 $('ncSel').addEventListener('change',e=>{ ncSelV=+e.target.value; render(); });
 $('ncPanel').addEventListener('input',e=>{const q=e.target.dataset.ncq;if(!q)return;const v=DATA.v.find(x=>String(x.cod)===q);const tx=e.target.value.toLowerCase();
   $('ncb'+q).innerHTML=ncFilas(ncDe(v).filter(c=>(c.id+' '+c.n+' '+c.a+' '+c.l+' '+c.ramo+' '+(DIAS[c.dia]||'')).toLowerCase().includes(tx)));});
