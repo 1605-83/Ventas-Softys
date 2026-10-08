@@ -15,6 +15,7 @@ $CONFIG = @{
   'Ventas-Grupo-Ayudin' = @{ proveedores = @('247');      meses = 1 }   # GRUPO AYUDIN ARGENTINA S.A
   'Ventas-Softys'       = @{ proveedores = @('150');      meses = 1 }   # SOFTYS ARGENTINA S.A
   'Cobertura-Georgalos' = @{ proveedores = @('42','43');  meses = 2 }   # GEORGALOS + GENERAL CEREALS
+  'Concurso-Bic'        = @{ proveedores = @('119');      meses = 1 }   # BIC ARGENTINA S.A
 }
 $cfg = $CONFIG[$Repo]
 if (-not $cfg) { throw "Repo desconocido: '$Repo'. Opciones: $($CONFIG.Keys -join ', ')" }
