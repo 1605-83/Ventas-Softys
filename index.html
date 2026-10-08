@@ -69,6 +69,15 @@ td input{width:84px;padding:4px 6px}
 .meter i{position:absolute;inset:0 auto 0 0;display:block}
 .meter b{position:absolute;top:-2px;bottom:-2px;left:calc(100%/1.2);width:2px;background:var(--ink)}
 .muted{color:#5d6b5b}
+.solapas{margin-top:26px}
+.soltabs{display:flex;flex-wrap:wrap;gap:6px;border-bottom:2px solid var(--ink)}
+.soltabs button{background:var(--panel);color:var(--ink);border:1px solid var(--ink);border-bottom:none;border-radius:8px 8px 0 0;padding:8px 16px;font:inherit;font-weight:600;cursor:pointer;margin:0}
+.soltabs button[aria-selected=true]{background:var(--ink);color:var(--panel)}
+.solbody{border:1px solid var(--ink);border-top:none;border-radius:0 0 8px 8px;padding:14px;background:var(--panel)}
+.solbody .nnote{font-size:.85rem;margin:10px 0 8px;max-width:90ch}
+.solbody input[type=search]{width:100%;max-width:340px;margin-bottom:8px}
+.solbody select{font:inherit;padding:4px 8px;max-width:100%}
+.solbody .tbl{margin-top:0}
 .paste{margin-top:22px;border:1px dashed var(--ink);border-radius:8px;padding:14px;background:var(--panel)}
 .paste summary{cursor:pointer;font-weight:600}
 .paste textarea{width:100%;min-height:110px;font:inherit;font-size:.85rem;margin:10px 0;border:1px solid var(--line);border-radius:6px;padding:8px}
@@ -136,6 +145,21 @@ tr.ncr input[type=search]{width:100%;max-width:340px;margin-bottom:8px}
   <tfoot id="tfoot"></tfoot>
 </table>
 </div>
+
+<section class="solapas">
+  <div class="soltabs" role="tablist">
+    <button type="button" role="tab" data-sol="nc" aria-selected="true">Clientes sin compra</button>
+    <button type="button" role="tab" data-sol="bul" aria-selected="false">Bultos por categoría</button>
+  </div>
+  <div class="solbody" id="solNC">
+    <label>Vendedor <select id="ncSel" aria-label="Vendedor"></select></label>
+    <div id="ncPanel"></div>
+  </div>
+  <div class="solbody" id="solBul" hidden>
+    <p class="nnote" style="margin-top:0">Bultos netos de devoluciones por categoría y vendedor (unidades ÷ unidades por bulto de cada artículo).</p>
+    <div class="tbl"><table><thead id="bulHead"></thead><tbody id="bulBody"></tbody><tfoot id="bulFoot"></tfoot></table></div>
+  </div>
+</section>
 
 <details class="paste" id="convBox" hidden>
   <summary>Conversión a bultos por artículo</summary>
@@ -221,7 +245,7 @@ function procesar(txt, nombre){
     if(!arts[ac]){ const a=(r[I.art]||'').trim(); let f,s;
       if(FAC_MANUAL[ac]){ f=FAC_MANUAL[ac][0]; s=FAC_MANUAL[ac][1]; }
       else { const ms=[...a.matchAll(/(\d+)\s*[x\/]\s*(\d+)/ig)]; if(ms.length){ f=+ms[ms.length-1][2]||1; s='Del nombre del artículo'; } else { f=1; s='Sin dato en el nombre'; } }
-      arts[ac]={c:+ac,a,f,s,u:0}; }
+      arts[ac]={c:+ac,a,f,s,u:0,k:ck}; }
     if(VEND.includes(cv)){ arts[ac].u+=cant; const m=vu[cv]||(vu[cv]={}); m[ac]=(m[ac]||0)+cant; }
   });
   const lista=Object.values(V).filter(v=>VEND.includes(v.cod)).map(v=>({cod:v.cod,nom:v.nom,sup:v.sup,
@@ -359,7 +383,7 @@ function cell(r,c){
     case 'base': return `<td>${r.base==null?'<span class="muted">—</span>':fmtN(r.base)}</td>`;
     case 'obj': return `<td><input type="number" min="0" step="1000" style="width:120px" data-f="obj" data-c="${r.cod}" value="${r.obj??''}" aria-label="Objetivo de ${r.nom}"></td>`;
     case 'cc': return `<td>${fmtN(r.cc)}</td>`;
-    case 'nc': return `<td><button class="tg" type="button" data-nc="${r.cod}" aria-expanded="${abiertosNC.has(r.cod)}" aria-label="Ver clientes sin compra de ${r.nom}">${abiertosNC.has(r.cod)?'−':'+'}</button>${r.nc==null?'<span class="muted">—</span>':fmtN(r.nc)}</td>`;
+    case 'nc': return `<td>${r.nc==null?'<span class="muted">—</span>':fmtN(r.nc)}</td>`;
     case 'cob': return `<td>${r.cob==null?'<span class="muted">—</span>':`<span class="chip" style="background:${r.cob>=.2?'#7CFF6B':r.cob>=.1?'#FFE14D':'#FF6B6B'}">${fmtP(r.cob)}</span>`}</td>`;
     case 'av': return `<td>${r.av==null?'<span class="muted">sin objetivo</span>':`<span class="chip" style="background:${chipc(r.av/((+$('dT').value||1)/(+$('dH').value||1)))}">${fmtP(r.av)}</span>`}</td>`;
     case 'part': return `<td>${fmtP(r.part)}</td>`;
@@ -411,6 +435,7 @@ function render(){
     ['c-cob','Cobertura', withBase.length?fmtP(withBase.reduce((a,r)=>a+r.cc,0)/T.base):'—', withBase.length?`Sobre ${fmtN(T.base)} clientes de la base`:'Cargá la base de clientes']
   ].map(k=>`<div class="kpi ${k[0]}"><div class="l">${k[1]}</div><div class="v">${k[2]}</div><div class="n">${k[3]}</div></div>`).join('');
 
+  renderSol(rs);
   const miss = rs.length - withBase.length;
   $('note').style.display = miss? 'block':'none';
   $('note').textContent = `${rs.filter(r=>r.base==null).map(r=>r.cod+' '+r.nom).join(' y ')} no figura${miss>1?'n':''} en la base de clientes: no ${miss>1?'suman':'suma'} a la cobertura total. Podés cargarla en «Cargar base de clientes y objetivos en bloque», al pie.`;
@@ -421,6 +446,33 @@ $('tbody').addEventListener('input',e=>{const q=e.target.dataset.ncq;if(!q)retur
   $('ncb'+q).innerHTML=ncFilas(ncDe(v).filter(c=>(c.id+' '+c.n+' '+c.a+' '+c.l+' '+c.ramo+' '+(DIAS[c.dia]||'')).toLowerCase().includes(t)));});
 $('tbody').addEventListener('click',e=>{const n=e.target.closest('[data-nc]');if(n){const c=+n.dataset.nc;abiertosNC.has(c)?abiertosNC.delete(c):abiertosNC.add(c);render();return;}
   const b=e.target.closest('[data-tg]');if(!b)return;const c=+b.dataset.tg;abiertos.has(c)?abiertos.delete(c):abiertos.add(c);render();});
+// Solapas debajo de la tabla: clientes sin compra por vendedor y bultos por categoria
+var ncSelV = null;
+function renderSol(rs){
+  const vs=[...rs].sort((a,b)=>a.cod-b.cod);
+  if(!vs.some(v=>v.cod===ncSelV)) ncSelV = vs.length? vs[0].cod : null;
+  $('ncSel').innerHTML = vs.map(v=>`<option value="${v.cod}"${v.cod===ncSelV?' selected':''}>${v.cod} · ${escH(v.nom)} (${v.nc==null?'—':fmtN(v.nc)} sin compra)</option>`).join('');
+  const r = vs.find(v=>v.cod===ncSelV);
+  $('ncPanel').innerHTML = r? ncRow(r).replace(/^<tr class="ncr"><td colspan="\d+">/,'').replace(/<\/td><\/tr>\s*$/,'') : '';
+  const artK={}; CONV.arts.forEach(a=>{ artK[a.c]=a; });
+  const keys=CATS.map(c=>[c[0],c[1]]);
+  const bc=vs.map(v=>{ const m=CONV.vu[v.cod]||{}, o={}; let tt=0;
+    Object.entries(m).forEach(([ac,u])=>{ const a=artK[+ac]; if(!a) return; const b=u/fac(a), k=a.k||'ot'; o[k]=(o[k]||0)+b; tt+=b; });
+    return {v,o,t:tt}; });
+  if(bc.some(x=>Math.abs(x.o.ot||0)>0.05)) keys.push(['ot','Otros']);
+  const cB = x => (x && Math.abs(x)>0.05)? fmtB(x) : '<span class="muted">—</span>';
+  $('bulHead').innerHTML = `<tr><th class="l">Código</th><th class="l">Vendedor</th>${keys.map(k=>`<th>${k[1]}</th>`).join('')}<th>Total</th></tr>`;
+  $('bulBody').innerHTML = bc.map(x=>`<tr><td class="l cod">${x.v.cod}</td><td class="l">${escH(x.v.nom)}</td>${keys.map(k=>`<td>${cB(x.o[k[0]])}</td>`).join('')}<td><b>${cB(x.t)}</b></td></tr>`).join('');
+  const tot = k => bc.reduce((s,x)=>s+(x.o[k]||0),0);
+  $('bulFoot').innerHTML = `<tr><td class="l" colspan="2">Total (${bc.length} vendedores)</td>${keys.map(k=>`<td>${cB(tot(k[0]))}</td>`).join('')}<td>${cB(bc.reduce((s,x)=>s+x.t,0))}</td></tr>`;
+}
+document.querySelectorAll('[data-sol]').forEach(btn=>btn.addEventListener('click',()=>{
+  document.querySelectorAll('[data-sol]').forEach(x=>x.setAttribute('aria-selected', String(x===btn)));
+  $('solNC').hidden = btn.dataset.sol!=='nc'; $('solBul').hidden = btn.dataset.sol!=='bul';
+}));
+$('ncSel').addEventListener('change',e=>{ ncSelV=+e.target.value; render(); });
+$('ncPanel').addEventListener('input',e=>{const q=e.target.dataset.ncq;if(!q)return;const v=DATA.v.find(x=>String(x.cod)===q);const tx=e.target.value.toLowerCase();
+  $('ncb'+q).innerHTML=ncFilas(ncDe(v).filter(c=>(c.id+' '+c.n+' '+c.a+' '+c.l+' '+c.ramo+' '+(DIAS[c.dia]||'')).toLowerCase().includes(tx)));});
 $('tgAll').addEventListener('click',()=>{const rs=rows();const all=rs.every(r=>abiertos.has(r.cod));rs.forEach(r=>all?abiertos.delete(r.cod):abiertos.add(r.cod));render();});
 $('tbody').addEventListener('change',e=>{const i=e.target;if(!i.dataset.f)return;store[i.dataset.f][i.dataset.c]=i.value;save();render();});
 ['fSup','fImp'].forEach(id=>$(id).addEventListener('change',render));
