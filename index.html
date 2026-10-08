@@ -40,7 +40,7 @@ button.ghost{background:transparent;color:var(--ink);border:1px solid var(--ink)
 .track span.done{background:var(--ink);color:#fff}
 .dlabel{font-size:.85rem;color:var(--ink2);margin-top:6px}
 
-.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:14px;align-items:stretch}
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;align-items:stretch}
 @media (max-width:1100px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:640px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .kpi{display:grid;grid-template-rows:auto auto 1fr;padding:14px 16px;border:2px solid var(--ink);border-radius:10px;box-shadow:5px 5px 0 var(--ink);color:#000;min-width:0}
@@ -137,7 +137,7 @@ tr.ncr input[type=search]{width:100%;max-width:340px;margin-bottom:8px}
 </table>
 </div>
 
-<details class="paste" id="convBox">
+<details class="paste" id="convBox" hidden>
   <summary>Conversión a bultos por artículo</summary>
   <p style="font-size:.85rem;margin:8px 0">Unidades por bulto tomadas del nombre del artículo: es el último número (por ejemplo TF Nocturna 8x32 = 32 paquetes por bulto, Babysec Ultra 50/24 = 24). Las filas marcadas no traen el dato en el nombre: corregí el valor y el dashboard se recalcula.</p>
   <div class="tbl" style="margin-top:0"><table style="min-width:640px"><thead><tr><th class="l">Código</th><th class="l">Artículo</th><th>Unidades</th><th>Unid. por bulto</th><th>Bultos</th><th class="l">Origen del dato</th></tr></thead><tbody id="convBody"></tbody></table></div>
@@ -296,8 +296,7 @@ $('dT').value = store.dT || META.dT; $('dH').value = store.dH || META.dH;
 const COLS = [
   {k:'cod',t:'Código',l:true},{k:'nom',t:'Vendedor',l:true},{k:'obj',t:'Objetivo $'},
   {k:'fact',t:'Facturación al día',c:'c-fact'},{k:'av',t:'Alcance %',c:'c-proy'},{k:'proy',t:'Proyectado $',c:'c-pct'},
-  {k:'cc',t:'Clientes compradores',c:'c-cli'},{k:'cob',t:'Cobertura',c:'c-cob'},{k:'nc',t:'Clientes sin compra',c:'c-cli'},
-  {k:'bul',t:'Bultos',c:'c-bul'}
+  {k:'cc',t:'Clientes con compra',c:'c-cli'},{k:'base',t:'Base de clientes',c:'c-cli'},{k:'nc',t:'Clientes sin compra',c:'c-cli'},{k:'cob',t:'Cobertura',c:'c-cob'}
 ];
 let sortK='fact', sortD=-1;
 const abiertos = new Set(), abiertosNC = new Set();
@@ -357,7 +356,7 @@ function cell(r,c){
   switch(c.k){
     case 'cod': return `<td class="l cod"><button class="tg" type="button" data-tg="${r.cod}" aria-expanded="${abiertos.has(r.cod)}" aria-label="Ver categorías de ${r.nom}">${abiertos.has(r.cod)?'−':'+'}</button>${r.cod}</td>`;
     case 'nom': return `<td class="l">${r.nom}</td>`;
-    case 'base': return `<td><input type="number" min="0" data-f="base" data-c="${r.cod}" value="${r.base??''}" aria-label="Base de clientes de ${r.nom}"></td>`;
+    case 'base': return `<td>${r.base==null?'<span class="muted">—</span>':fmtN(r.base)}</td>`;
     case 'obj': return `<td><input type="number" min="0" step="1000" style="width:120px" data-f="obj" data-c="${r.cod}" value="${r.obj??''}" aria-label="Objetivo de ${r.nom}"></td>`;
     case 'cc': return `<td>${fmtN(r.cc)}</td>`;
     case 'nc': return `<td><button class="tg" type="button" data-nc="${r.cod}" aria-expanded="${abiertosNC.has(r.cod)}" aria-label="Ver clientes sin compra de ${r.nom}">${abiertosNC.has(r.cod)?'−':'+'}</button>${r.nc==null?'<span class="muted">—</span>':fmtN(r.nc)}</td>`;
@@ -409,8 +408,7 @@ function render(){
     ['c-proy','Alcance %', tAv==null?'—':fmtP(tAv), T.obj?`Facturado sobre objetivo, ideal hoy ${fmtP(dT/dH)}`:'Cargá los objetivos en la tabla'],
     ['c-pct','Proyectado $ al cierre', fmt$(T.proy), `Al ritmo actual, ${dT} de ${dH} días hábiles`],
     ['c-cli','Clientes compradores', fmtN(T.cc), withBase.length?`${fmtN(T.nc)} sin compra`:'Cargá la base para ver sin compra'],
-    ['c-cob','Cobertura', withBase.length?fmtP(withBase.reduce((a,r)=>a+r.cc,0)/T.base):'—', withBase.length?`Sobre ${fmtN(T.base)} clientes de la base`:'Cargá la base de clientes'],
-    ['c-bul','Bultos vendidos', fmtB(T.bul), `${fmtN(T.bultos)} unidades, ${fmtB(T.bul/dT)} por día`]
+    ['c-cob','Cobertura', withBase.length?fmtP(withBase.reduce((a,r)=>a+r.cc,0)/T.base):'—', withBase.length?`Sobre ${fmtN(T.base)} clientes de la base`:'Cargá la base de clientes']
   ].map(k=>`<div class="kpi ${k[0]}"><div class="l">${k[1]}</div><div class="v">${k[2]}</div><div class="n">${k[3]}</div></div>`).join('');
 
   const miss = rs.length - withBase.length;
