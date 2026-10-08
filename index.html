@@ -467,9 +467,8 @@ function renderSol(rs){
   const artK={}; CONV.arts.forEach(a=>{ artK[a.c]=a; });
   const keys=CATS.map(c=>[c[0],c[1]]);
   const bc=vs.map(v=>{ const m=CONV.vu[v.cod]||{}, o={}; let tt=0;
-    Object.entries(m).forEach(([ac,u])=>{ const a=artK[+ac]; if(!a) return; const b=u/fac(a), k=a.k||'ot'; o[k]=(o[k]||0)+b; tt+=b; });
+    Object.entries(m).forEach(([ac,u])=>{ const a=artK[+ac]; if(!a) return; const k=a.k||'ot'; if(k==='ot') return; const b=u/fac(a); o[k]=(o[k]||0)+b; tt+=b; });
     return {v,o,t:tt}; });
-  if(bc.some(x=>Math.abs(x.o.ot||0)>0.05)) keys.push(['ot','Otros']);
   const cB = x => (x && Math.abs(x)>0.05)? fmtB(x) : '<span class="muted">—</span>';
   $('bulHead').innerHTML = `<tr><th class="l">Código</th><th class="l">Vendedor</th>${keys.map(k=>`<th>${k[1]}</th>`).join('')}<th>Total</th></tr>`;
   $('bulBody').innerHTML = bc.map(x=>`<tr><td class="l cod">${x.v.cod}</td><td class="l">${escH(x.v.nom)}</td>${keys.map(k=>`<td>${cB(x.o[k[0]])}</td>`).join('')}<td><b>${cB(x.t)}</b></td></tr>`).join('');
