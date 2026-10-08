@@ -16,6 +16,7 @@ $CONFIG = @{
   'Ventas-Softys'       = @{ proveedores = @('150');      meses = 1 }   # SOFTYS ARGENTINA S.A
   'Cobertura-Georgalos' = @{ proveedores = @('42','43');  meses = 2 }   # GEORGALOS + GENERAL CEREALS
   'Concurso-Bic'        = @{ proveedores = @('119');      meses = 1 }   # BIC ARGENTINA S.A
+  'concurso-softys'     = @{ proveedores = @('150');      desde = '2026-09-01' }   # SOFTYS, desde el inicio del concurso
 }
 $cfg = $CONFIG[$Repo]
 if (-not $cfg) { throw "Repo desconocido: '$Repo'. Opciones: $($CONFIG.Keys -join ', ')" }
@@ -37,7 +38,8 @@ function Pedir([string]$metodo, [string]$ruta, $cuerpo) {
 
 # ---- Periodo: por FECHA DE ENTREGA, del 1 del mes a hoy (hora argentina) ----
 $hoy = (Get-Date).ToUniversalTime().AddHours(-3).Date
-$desde = (Get-Date -Year $hoy.Year -Month $hoy.Month -Day 1).Date.AddMonths(1 - $cfg.meses)
+if ($cfg.desde) { $desde = [datetime]::ParseExact($cfg.desde, 'yyyy-MM-dd', $null) }
+else { $desde = (Get-Date -Year $hoy.Year -Month $hoy.Month -Day 1).Date.AddMonths(1 - $cfg.meses) }
 
 # "Datos al": la ultima actualizacion de ventas de la base (UTC -> Argentina)
 $corte = (Get-Date).ToUniversalTime().AddHours(-3)
