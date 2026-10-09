@@ -120,6 +120,7 @@ tr.ncr input[type=search]{width:100%;max-width:340px;margin-bottom:8px}
     <p class="sub" id="hSub">Cargando el detalle de ventas…</p>
   </div>
   <div class="controls">
+    <label>Fecha <select id="fFecha" aria-label="Tipo de fecha"><option value="comp">De comprobante</option><option value="ent">De entrega</option><option value="car">De carga</option></select></label>
     <label>Supervisor
       <select id="fSup"><option value="">Todos</option></select></label>
     <label>Importe
@@ -237,15 +238,29 @@ const num = s => { if(s==null) return 0; s=String(s).trim(); if(!s) return 0; re
 const titulo = s => { s=(s||'').trim(); if(!(s===s.toUpperCase() && /[A-ZÁÉÍÓÚÑ]/.test(s))) return s;
   return s.toLowerCase().replace(/(^|[^a-záéíóúñü])([a-záéíóúñü])/g,(m,a,b)=>a+b.toUpperCase()); };
 
+// ---- Tipo de fecha: comprobante (solo lo facturado), entrega o carga. Va en la direccion (?fecha=ent) y se recuerda ----
+const TF_KEY='Ventas-Softys-tipo-fecha', TF_NOM={comp:'fecha de comprobante',ent:'fecha de entrega',car:'fecha de carga'};
+let TIPO_F=new URLSearchParams(location.search).get('fecha')||''; if(!TIPO_F){ try{ TIPO_F=localStorage.getItem(TF_KEY)||''; }catch(e){} }
+if(!TF_NOM[TIPO_F]) TIPO_F='comp';
+const isoDe=s=>{ s=String(s||'').trim(); let m=s.match(/^(\d{4})-(\d{2})-(\d{2})/); if(m) return m[1]+'-'+m[2]+'-'+m[3];
+  m=s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/); return m? m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0') : ''; };
+const fechaTipo=(comp,ent,car)=>isoDe(TIPO_F==='comp'? comp : TIPO_F==='ent'? ent : car);
+const HOY_ISO=new Date(Date.now()-3*3600e3).toISOString().slice(0,10);
+function selTipoFecha(sel){ if(!sel) return; sel.value=TIPO_F; sel.addEventListener('change',e=>{ const v=e.target.value;
+  try{ localStorage.setItem(TF_KEY,v); }catch(err){} const u=new URL(location.href); u.searchParams.set('fecha',v); location.href=u.toString(); }); }
 function procesar(txt, nombre){
   const rows=parseCSV(txt).filter(r=>r.length>5);
   const H=rows.shift().map(h=>h.trim()); const ix=n=>{const i=H.indexOf(n); if(i<0) throw new Error('Falta la columna '+n); return i;};
   const I={cli:ix('Cliente'),emp:ix('Empresa'),fc:ix('FechaComprobante'),cod:ix('Codigo'),cant:ix('CantBase'),neto:ix('ImporteNetoItem'),bruto:ix('ImporteItem'),cv:ix('CodVendedor'),vn:ix('Vendedor'),art:ix('Articulo'),sup:ix('NomSupervisor'),fam:H.indexOf('Familia'),rs:H.indexOf('RazonSocial'),dir:H.indexOf('Direccion'),loc:H.indexOf('Localidad')};
   const V={}, arts={}, vu={}, fechas=new Set(), allnet={};
+  // el CSV trae el mes por cualquiera de las tres fechas: se queda con el mes en curso (el de la ultima carga) segun la fecha elegida
+  const ien=H.indexOf('FechaEntrega'), ica=H.indexOf('FechaCarga');
+  let ymSel=''; rows.forEach(r=>{ const c=isoDe(ica>=0? r[ica] : r[I.fc]); if(c&&c<=HOY_ISO&&c.slice(0,7)>ymSel) ymSel=c.slice(0,7); });
   rows.forEach(r=>{
     const cv=parseInt(r[I.cv],10); if(isNaN(cv)) return;
     const neto=num(r[I.neto]), bruto=num(r[I.bruto]), cant=num(r[I.cant]), ac=String(parseInt(r[I.cod],10));
-    fechas.add(r[I.fc]);
+    const fx=fechaTipo(r[I.fc], ien>=0? r[ien] : '', ica>=0? r[ica] : ''); if(!fx||fx>HOY_ISO||(ymSel&&fx.slice(0,7)!==ymSel)) return;
+    fechas.add(fx);
     const v = V[cv] || (V[cv]={cod:cv,nom:titulo(r[I.vn]),sup:titulo(r[I.sup]||'Sin supervisor')||'Sin supervisor',neto:0,bruto:0,bultos:0,cli:{},cat:{},cid:{}});
     v.neto+=neto; v.bruto+=bruto; v.bultos+=cant;
     const k=r[I.emp]+'|'+r[I.cli]; v.cli[k]=(v.cli[k]||0)+neto;
@@ -293,7 +308,7 @@ function arrancar(txt,nombre){
     const P=procesar(txt,nombre);
     if(!P.DATA.v.length) throw new Error('El archivo no tiene ventas de los vendedores del dashboard');
     $('hMes').textContent=P.META.mes;
-    $('hSub').textContent=`Proveedor Softys Argentina S.A. · Corte al ${P.META.corte} · Lagopuelo S.A. y Elebes`;
+    $('hSub').textContent=`Proveedor Softys Argentina S.A. · Venta por ${TF_NOM[TIPO_F]} · Corte al ${P.META.corte} · Lagopuelo S.A. y Elebes`;
     $('fuente').textContent='Archivo: '+nombre+'.';
     document.title='Ventas Softys por vendedor, '+P.META.mes;
     $('loader').style.display='none'; $('app').style.display='block';
@@ -301,6 +316,7 @@ function arrancar(txt,nombre){
   }catch(e){ mostrarError('No se pudo procesar el archivo: '+e.message); }
 }
 const $ = id => document.getElementById(id);
+selTipoFecha($('fFecha'));
 $('csvFile').addEventListener('change',async e=>{
   const f=e.target.files[0]; if(!f) return;
   if(booted){ location.reload(); return; }
