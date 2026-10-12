@@ -125,7 +125,6 @@ tr.ncr input[type=search]{width:100%;max-width:340px;margin-bottom:8px}
       <select id="fSup"><option value="">Todos</option></select></label>
     <label>Importe
       <select id="fImp"><option value="neto">Neto sin IVA</option><option value="bruto">Con IVA</option></select></label>
-    <button class="ghost" id="tgAll" type="button">Abrir todas las categorías</button>
     <label>Días transcurridos <input type="number" id="dT" min="1" max="31"></label>
     <label>Días hábiles mes <input type="number" id="dH" min="1" max="31"></label>
   </div>
@@ -435,7 +434,6 @@ function render(){
   rs.sort((a,b)=>{const x=a[sortK],y=b[sortK]; if(x==null&&y==null)return 0; if(x==null)return 1; if(y==null)return -1; return (typeof x==='string'? x.localeCompare(y):x-y)*sortD;});
   $('thead').innerHTML = COLS.map(c=>`<th class="${c.l?'l':''} ${c.c||''}" data-k="${c.k}" scope="col" tabindex="0">${c.t} <span class="ar">${sortK===c.k?(sortD>0?'▲':'▼'):''}</span></th>`).join('');
   $('tbody').innerHTML = rs.map(r=>`<tr>${COLS.map(c=>cell(r,c)).join('')}</tr>`+(abiertos.has(r.cod)?catRow(r):'')+(abiertosNC.has(r.cod)?ncRow(r):'')).join('');
-  $('tgAll').textContent = rs.length && rs.every(r=>abiertos.has(r.cod)) ? 'Cerrar todas las categorías' : 'Abrir todas las categorías';
 
   const sum=k=>rs.reduce((a,r)=>a+(r[k]||0),0);
   const withBase=rs.filter(r=>r.base!=null), withObj=rs.filter(r=>r.obj!=null);
@@ -494,7 +492,6 @@ function renderSol(rs){
 $('ncSel').addEventListener('change',e=>{ ncSelV=+e.target.value; render(); });
 $('ncPanel').addEventListener('input',e=>{const q=e.target.dataset.ncq;if(!q)return;const v=DATA.v.find(x=>String(x.cod)===q);const tx=e.target.value.toLowerCase();
   $('ncb'+q).innerHTML=ncFilas(ncDe(v).filter(c=>(c.id+' '+c.n+' '+c.a+' '+c.l+' '+c.ramo+' '+(DIAS[c.dia]||'')).toLowerCase().includes(tx)));});
-$('tgAll').addEventListener('click',()=>{const rs=rows();const all=rs.every(r=>abiertos.has(r.cod));rs.forEach(r=>all?abiertos.delete(r.cod):abiertos.add(r.cod));render();});
 $('tbody').addEventListener('change',e=>{const i=e.target;if(!i.dataset.f)return;store[i.dataset.f][i.dataset.c]=i.value;save();render();});
 ['fSup','fImp'].forEach(id=>$(id).addEventListener('change',render));
 ['dT','dH'].forEach(id=>$(id).addEventListener('change',()=>{store[id]=+$(id).value;save();render();}));
