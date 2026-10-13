@@ -30,6 +30,7 @@ h1{font-size:clamp(1.6rem,3.2vw,2.4rem);font-weight:800;margin:0;letter-spacing:
 .titulo .t-mes:empty{display:none}
 @media (min-width:900px){.titulo{flex-wrap:nowrap;white-space:nowrap}}
 .sub{margin:6px 0 0;font-size:.95rem;color:var(--ink2)}
+.act{display:inline-block;margin:6px 0 0;padding:4px 12px;background:#FFE14D;color:#000;border:1px solid #000;border-radius:999px;font-size:.9rem;font-weight:700}.act[hidden]{display:none}
 .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .controls label{font-size:.85rem;display:flex;align-items:center;gap:6px}
 select,input{font:inherit;color:var(--ink);background:var(--input);border:1px solid var(--line);border-radius:6px;padding:6px 8px}
@@ -117,6 +118,7 @@ tr.ncr input[type=search]{width:100%;max-width:340px;margin-bottom:8px}
 <header>
   <h1 class="titulo"><span class="t-txt">Ventas por vendedor</span><span class="t-marca">Softys</span><span class="t-mes" id="hMes"></span></h1>
   <div>
+    <p class="act" id="hAct" hidden></p>
     <p class="sub" id="hSub">Cargando el detalle de ventas…</p>
   </div>
   <div class="controls">
@@ -302,12 +304,13 @@ function mostrarError(msg){
   $('loadMsg').textContent=msg; $('loadPick').style.display='block';
 }
 let booted=false;
+const etiquetaAct=n=>{ const m=String(n||'').match(/(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})/); return (m? `Datos de ventas al ${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]} hs · ` : '')+'Se actualiza solo: lun a vie 7:00 y 13:30 hs'; };   // fecha de los datos (del nombre del CSV) y horario del robot
 function arrancar(txt,nombre){
   try{
     const P=procesar(txt,nombre);
     if(!P.DATA.v.length) throw new Error('El archivo no tiene ventas de los vendedores del dashboard');
     $('hMes').textContent=P.META.mes;
-    $('hSub').textContent=`Proveedor Softys Argentina S.A. · Venta por ${TF_NOM[TIPO_F]} · Corte al ${P.META.corte} · Lagopuelo S.A. y Elebes`;
+    $('hSub').textContent=`Proveedor Softys Argentina S.A. · Venta por ${TF_NOM[TIPO_F]} · Corte al ${P.META.corte} · Lagopuelo S.A. y Elebes`; $('hAct').textContent=etiquetaAct(nombre); $('hAct').hidden=false;
     $('fuente').textContent='Archivo: '+nombre+'.';
     document.title='Ventas Softys por vendedor, '+P.META.mes;
     $('loader').style.display='none'; $('app').style.display='block';
