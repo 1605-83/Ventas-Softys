@@ -304,7 +304,7 @@ function mostrarError(msg){
   $('loadMsg').textContent=msg; $('loadPick').style.display='block';
 }
 let booted=false;
-const etiquetaAct=n=>{ const m=String(n||'').match(/(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})/); return (m? `Datos de ventas al ${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]} hs · ` : '')+'Se actualiza solo: lun a vie 7:00 y 13:30 hs'; };   // fecha de los datos (del nombre del CSV) y horario del robot
+const etiquetaAct=n=>{ const m=String(n||'').match(/(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})/); return (m? `Datos de ventas al ${m[3]}/${m[2]}/${m[1]} · ` : '')+'Se actualiza a las 7 hs y 13:30 hs'; };   // fecha de los datos (del nombre del CSV) y horario del robot
 function arrancar(txt,nombre){
   try{
     const P=procesar(txt,nombre);
