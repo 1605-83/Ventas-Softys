@@ -381,7 +381,7 @@ function catRow(r){
   const max=Math.max(...lst.map(([,c])=>c?c[imp]:0),1);
   const oc=OBJ_CAT[r.cod]||{}, ideal=(+$('dT').value||1)/(+$('dH').value||1);
   const keys=CATS.map(c=>c[0]); if(lst.length>CATS.length) keys.push('ot');
-  const chipA=(f,o)=> o? `<span class="chip" style="background:${chipc((f/o)/ideal)}">${fmtP(f/o)}</span>` : '<span class="muted">—</span>';
+  const chipA=(f,o)=> o? `<span class="chip" style="background:${chipc(f/o)}">${fmtP(f/o)}</span>` : '<span class="muted">—</span>';
   const body=lst.map(([t,c],i)=>{const f=c?c[imp]:0, cc=c?c.cc:0, o=oc[keys[i]]||0;
     return `<tr${f||o?'':' class="cero"'}><td class="l">${t}</td><td>${o?fmt$(o):'<span class="muted">—</span>'}</td><td>${fmt$(f)}<span class="cbar"><i style="width:${Math.max(f,0)/max*100}%"></i></span></td><td>${chipA(f,o)}</td><td>${o?fmt$(Math.max(o-f,0)):'<span class="muted">—</span>'}</td><td>${tot?fmtP(f/tot):'—'}</td><td>${fmtN(cc)}</td></tr>`}).join('');
   return `<tr class="cat"><td colspan="${COLS.length}"><table><thead><tr><th class="l">Categoría</th><th>Objetivo $</th><th>Facturación</th><th>Alcance %</th><th>Falta $</th><th>% del vendedor</th><th>Clientes con compra</th></tr></thead><tbody>${body}</tbody><tfoot><tr><td class="l">Total ${r.nom}</td><td>${r.obj?fmt$(r.obj):'—'}</td><td>${fmt$(tot)}</td><td>${chipA(tot,r.obj)}</td><td>${r.obj?fmt$(Math.max(r.obj-tot,0)):'—'}</td><td>100,0%</td><td>${fmtN(r.cc)}</td></tr></tfoot></table></td></tr>`;
@@ -400,8 +400,8 @@ function rows(){
       alc: obj? proy/obj:null, av: obj? fact/obj:null};
   });
 }
-function chipc(a){ return a>=1?'#7CFF6B':a>=.85?'#FFE14D':'#FF6B6B'; }
-function color(a){ return a>=1?'var(--ok)':a>=.85?'var(--mid)':'var(--low)'; }
+function chipc(a){ return a>=.8?'#7CFF6B':a>=.5?'#FFE14D':'#FF6B6B'; }   // rangos fijos (igual que el Reporte diario): <50% rojo, 50-79% amarillo, 80%+ verde
+function color(a){ return a>=.8?'var(--ok)':a>=.5?'var(--mid)':'var(--low)'; }
 function cell(r,c){
   switch(c.k){
     case 'cod': return `<td class="l cod"><button class="tg" type="button" data-tg="${r.cod}" aria-expanded="${abiertos.has(r.cod)}" aria-label="Ver categorías de ${r.nom}">${abiertos.has(r.cod)?'−':'+'}</button>${r.cod}</td>`;
@@ -411,7 +411,7 @@ function cell(r,c){
     case 'cc': return `<td>${fmtN(r.cc)}</td>`;
     case 'nc': return `<td>${r.nc==null?'<span class="muted">—</span>':fmtN(r.nc)}</td>`;
     case 'cob': return `<td>${r.cob==null?'<span class="muted">—</span>':`<span class="chip" style="background:${r.cob>=.2?'#7CFF6B':r.cob>=.1?'#FFE14D':'#FF6B6B'}">${fmtP(r.cob)}</span>`}</td>`;
-    case 'av': return `<td>${r.av==null?'<span class="muted">sin objetivo</span>':`<span class="chip" style="background:${chipc(r.av/((+$('dT').value||1)/(+$('dH').value||1)))}">${fmtP(r.av)}</span>`}</td>`;
+    case 'av': return `<td>${r.av==null?'<span class="muted">sin objetivo</span>':`<span class="chip" style="background:${chipc(r.av)}">${fmtP(r.av)}</span>`}</td>`;
     case 'part': return `<td>${fmtP(r.part)}</td>`;
     case 'fact': return `<td>${fmt$(r.fact)}</td>`;
     case 'proy': return `<td>${fmt$(r.proy)}</td>`;
@@ -444,7 +444,7 @@ function render(){
   const tAlc = T.obj? T.proyObj/T.obj : null, tAv = T.obj? T.factObj/T.obj : null;
   const TF = {
     obj: T.obj?fmt$(T.obj):'—', fact: fmt$(T.fact),
-    av: tAv==null?'—':`<span class="chip" style="background:${chipc(tAv/(dT/dH))}">${fmtP(tAv)}</span>`,
+    av: tAv==null?'—':`<span class="chip" style="background:${chipc(tAv)}">${fmtP(tAv)}</span>`,
     proy: fmt$(T.proy), cc: fmtN(T.cc),
     cob: withBase.length?fmtP(withBase.reduce((a,r)=>a+r.cc,0)/T.base):'—',
     nc: withBase.length?fmtN(T.nc):'—', bul: fmtB(T.bul),
