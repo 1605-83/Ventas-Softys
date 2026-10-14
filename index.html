@@ -30,7 +30,7 @@ h1{font-size:clamp(1.6rem,3.2vw,2.4rem);font-weight:800;margin:0;letter-spacing:
 .titulo .t-mes:empty{display:none}
 @media (min-width:900px){.titulo{flex-wrap:nowrap;white-space:nowrap}}
 .sub{margin:6px 0 0;font-size:.95rem;color:var(--ink2)}
-.wrap{position:relative}.act{position:absolute;top:6px;right:20px;margin:0;padding:0;background:none;border:0;border-radius:0;color:var(--ink);font-size:.78rem;font-weight:500;text-align:right;max-width:calc(100% - 40px)}.act[hidden]{display:none}
+.titulo .t-act{margin-left:auto;padding-left:14px;color:#fff;font-size:.55em;font-weight:500;letter-spacing:0;white-space:nowrap;align-self:center}.titulo .t-act[hidden]{display:none}
 .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .controls label{font-size:.85rem;display:flex;align-items:center;gap:6px}
 select,input{font:inherit;color:var(--ink);background:var(--input);border:1px solid var(--line);border-radius:6px;padding:6px 8px}
@@ -116,9 +116,8 @@ tr.ncr input[type=search]{width:100%;max-width:340px;margin-bottom:8px}
 <body>
 <div class="wrap">
 <header>
-  <h1 class="titulo"><span class="t-txt">Ventas por vendedor</span><span class="t-marca">Softys</span><span class="t-mes" id="hMes"></span></h1>
+  <h1 class="titulo"><span class="t-txt">Ventas por vendedor</span><span class="t-marca">Softys</span><span class="t-mes" id="hMes"></span><span class="t-act" id="hAct" hidden></span></h1>
   <div>
-    <p class="act" id="hAct" hidden></p>
     <p class="sub" id="hSub">Cargando el detalle de ventas…</p>
   </div>
   <div class="controls">
