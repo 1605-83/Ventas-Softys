@@ -473,7 +473,7 @@ function cell(r,c){
     case 'obj': return `<td>${r.obj==null?'<span class="muted">—</span>':fmt$(r.obj)}</td>`;
     case 'cc': return `<td>${fmtN(r.cc)}</td>`;
     case 'nc': return `<td>${r.nc==null?'<span class="muted">—</span>':fmtN(r.nc)}</td>`;
-    case 'cob': return `<td>${r.cob==null?'<span class="muted">—</span>':`<span class="chip" style="background:${r.cob>=.2?'#7CFF6B':r.cob>=.1?'#FFE14D':'#FF6B6B'}">${fmtP(r.cob)}</span>`}</td>`;
+    case 'cob': return `<td>${r.cob==null?'<span class="muted">—</span>':`<span class="chip" style="background:${r.cob>=.9?'#7CFF6B':r.cob>=.5?'#FFE14D':'#FF6B6B'}">${fmtP(r.cob)}</span>`}</td>`;
     case 'av': return `<td>${r.av==null?'<span class="muted">sin objetivo</span>':`<span class="chip" style="background:${chipc(r.av)}">${fmtP(r.av)}</span>`}</td>`;
     case 'part': return `<td>${fmtP(r.part)}</td>`;
     case 'fact': return `<td>${fmt$(r.fact)}</td>`;
