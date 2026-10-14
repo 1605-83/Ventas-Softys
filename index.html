@@ -54,7 +54,15 @@ button.ghost{background:transparent;color:var(--ink);border:1px solid var(--ink)
 .kpi .l{font-size:.9rem;font-weight:600;line-height:1.2;min-height:2.4em}
 .kpi .v{font-size:clamp(1.15rem,1.75vw,1.6rem);font-weight:800;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kpi .n{font-size:.8rem;margin-top:6px;align-self:start}
-#hSub{display:none}   /* el renglon de proveedor, fecha y corte no se muestra (pedido de Bruno) */
+#hSub{display:none}
+.kpi.kv{--kc:#FFD60A;grid-template-rows:auto auto auto 1fr;background:#0B4F8A;color:#fff;border-color:#000}
+.kpi.kv .l{color:var(--kc);min-height:0}.kpi.kv .n{color:#D6E6F5}
+.mini{margin-top:8px;align-self:end}
+.mplot{display:flex;align-items:flex-end;gap:3px;height:52px;border-bottom:1px solid rgba(255,255,255,.45)}
+.mb{flex:1 1 0;min-width:2px;background:var(--kc);border-radius:3px 3px 0 0;transition:opacity .12s}
+.mplot:hover .mb{opacity:.4}.mplot .mb:hover,.mb:focus{opacity:1;outline:none}
+.mlab{display:flex;gap:3px;margin-top:3px;font-size:.62rem;color:#D6E6F5;line-height:1.1}.mlab span{flex:1 1 0;min-width:0;text-align:center;overflow:hidden;white-space:nowrap}
+#tip{position:fixed;z-index:60;display:none;pointer-events:none;max-width:280px;padding:6px 9px;border-radius:6px;background:#fff;color:#000;border:1px solid #000;font-size:.8rem;font-weight:600;line-height:1.3;box-shadow:0 2px 10px rgba(0,0,0,.4)}   /* el renglon de proveedor, fecha y corte no se muestra (pedido de Bruno) */
 .c-fact{background:#FFD60A}.c-proy{background:#FF8C1A}.c-pct{background:#FF4FA3}
 .c-cob{background:#2EE6F0}.c-cli{background:#C29BFF}.c-bul{background:#5C9BFF}
 th.c-fact,th.c-proy,th.c-pct,th.c-cob,th.c-cli,th.c-bul{color:#000}
@@ -339,6 +347,14 @@ function arrancar(txt,nombre){
   }catch(e){ mostrarError('No se pudo procesar el archivo: '+e.message); }
 }
 const $ = id => document.getElementById(id);
+// cartel de los graficos de los indicadores: mouse, toque o teclado (Tab) sobre una barra
+const TIP=document.createElement('div'); TIP.id='tip'; TIP.setAttribute('role','tooltip'); document.body.appendChild(TIP);
+function verTip(el,x,y){ TIP.textContent=el.dataset.tip; TIP.style.display='block'; const w=TIP.offsetWidth, h=TIP.offsetHeight;
+  TIP.style.left=Math.min(Math.max(8,x-w/2),innerWidth-w-8)+'px'; TIP.style.top=(y-h-12<8? y+18 : y-h-12)+'px'; }
+document.addEventListener('mousemove',e=>{ const el=e.target.closest&&e.target.closest('.mb'); if(el) verTip(el,e.clientX,e.clientY); else if(TIP.style.display!=='none' && document.activeElement?.className!=='mb') TIP.style.display='none'; });
+document.addEventListener('pointerdown',e=>{ const el=e.target.closest&&e.target.closest('.mb'); if(el) verTip(el,e.clientX,e.clientY); else TIP.style.display='none'; });
+document.addEventListener('focusin',e=>{ if(e.target.classList&&e.target.classList.contains('mb')){ const r=e.target.getBoundingClientRect(); verTip(e.target,r.left+r.width/2,r.top); } });
+document.addEventListener('focusout',()=>{ TIP.style.display='none'; });
 selTipoFecha($('fFecha'));
 $('csvFile').addEventListener('change',async e=>{
   const f=e.target.files[0]; if(!f) return;
@@ -424,6 +440,15 @@ function rows(){
       alc: obj? proy/obj:null, av: obj? fact/obj:null};
   });
 }
+// mini grafico de barras de los indicadores: items [{c:etiqueta, v:valor, tip:texto}]; cada barra se puede tocar o enfocar
+function miniBarras(items){
+  if(!items.length) return '';
+  const vals=items.map(i=>Math.max(+i.v||0,0)), max=(Math.max(...vals,0)*1.08)||1;
+  const esc=s=>String(s??'').replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+  return `<div class="mini" role="img" aria-label="${esc(items.map(i=>i.tip).join('; '))}"><div class="mplot">`
+    + items.map((i,n)=>`<span class="mb" tabindex="0" data-tip="${esc(i.tip)}" style="height:${Math.max(vals[n]/max*100,1.5)}%"></span>`).join('') + '</div>'
+    + (items.some(i=>i.c)? `<div class="mlab">${items.map(i=>`<span>${esc(i.c)}</span>`).join('')}</div>` : '') + '</div>';
+}
 function chipc(a){ return a>=.9?'#7CFF6B':a>=.4?'#FFE14D':'#FF6B6B'; }   // rangos fijos: <40% rojo, 40-89% amarillo, 90%+ verde
 function color(a){ return a>=.9?'var(--ok)':a>=.4?'var(--mid)':'var(--low)'; }
 function cell(r,c){
@@ -476,13 +501,26 @@ function render(){
   };
   $('tfoot').innerHTML = `<tr><td class="l" colspan="2">Total (${rs.length} vendedores)</td>` + COLS.slice(2).map(c=>`<td>${TF[c.k]}</td>`).join('') + `</tr>`;
 
+  // ---- indicadores (orden pedido por Bruno 13/10/2026, igual que Ayudin): objetivo, facturacion, proyectado, cobertura,
+  // clientes con compra; fondo azul como el titulo y un grafico de barras en cada uno (mouse o toque muestra el dato) ----
+  const imp=$('fImp').value, CORTO={ph:'PH',rc:'ROLLOS',se:'SERV',pu:'PAÑUE',pa:'PAÑAL',th:'HÚM',tf:'FEM'};
+  const porCat=f=>CATS.map(([k,n])=>({k,n,c:CORTO[k]||k,v:f(k)}));
+  const objCat=k=>rs.reduce((a,r)=>a+((OBJ_CAT[r.cod]||{})[k]||0),0);
+  const factCat=k=>rs.reduce((a,r)=>a+(((r.cat||{})[k]||{})[imp]||0),0);
+  const ccCat=k=>rs.reduce((a,r)=>a+(((r.cat||{})[k]||{}).cc||0),0);
+  const cobOrd=withBase.filter(r=>r.base).map(r=>({c:'',v:r.cc/r.base,tip:`${r.cod} · ${r.nom}: ${fmtP(r.cc/r.base)} (${fmtN(r.cc)} de ${fmtN(r.base)} clientes)`})).sort((a,b)=>b.v-a.v);
+  const tCob=withBase.length? withBase.reduce((a,r)=>a+r.cc,0)/T.base : null;
   $('kpis').innerHTML = [
-    ['c-fact','Facturación al día', fmt$(T.fact), $('fImp').value==='neto'?'Neto sin IVA':'Con IVA'],
-    ['c-proy','Alcance %', tAv==null?'—':fmtP(tAv), T.obj?`Facturado sobre objetivo, ideal hoy ${fmtP(dT/dH)}`:'Cargá los objetivos en la tabla'],
-    ['c-pct','Proyectado $ al cierre', fmt$(T.proy), `Al ritmo actual, ${dT} de ${dH} días hábiles`],
-    ['c-cli','Clientes compradores', fmtN(T.cc), withBase.length?`${fmtN(T.nc)} sin compra`:'Cargá la base para ver sin compra'],
-    ['c-cob','Cobertura', withBase.length?fmtP(withBase.reduce((a,r)=>a+r.cc,0)/T.base):'—', withBase.length?`Sobre ${fmtN(T.base)} clientes de la base`:'Cargá la base de clientes']
-  ].map(k=>`<div class="kpi ${k[0]}"><div class="l">${k[1]}</div><div class="v">${k[2]}</div><div class="n">${k[3]}</div></div>`).join('');
+    ['#FFD60A','Objetivo del mes', T.obj?fmt$(T.obj):'—', 'Por categoría',
+      miniBarras(porCat(objCat).map(x=>({...x,tip:`${x.n}: ${fmt$(x.v)}`})))],
+    ['#2EE6F0','Facturación al día', fmt$(T.fact), (imp==='neto'?'Neto sin IVA':'Con IVA')+' · por categoría',
+      miniBarras(porCat(factCat).map(x=>({...x,tip:`${x.n}: ${fmt$(x.v)}${objCat(x.k)? ' · '+fmtP(x.v/objCat(x.k))+' del objetivo' : ''}`})))],
+    ['#FF7AC0','Proyectado $ al cierre', fmt$(T.proy), `Al ritmo actual, ${dT} de ${dH} días hábiles`,
+      miniBarras(porCat(k=>factCat(k)/dT*dH).map(x=>({...x,tip:`${x.n}: ${fmt$(x.v)}${objCat(x.k)? ' · '+fmtP(x.v/objCat(x.k))+' del objetivo' : ''}`})))],
+    ['#C29BFF','Cobertura', tCob==null?'—':fmtP(tCob), withBase.length?`Sobre ${fmtN(T.base)} clientes · por vendedor`:'Cargá la base de clientes', miniBarras(cobOrd)],
+    ['#FFA94D','Clientes con compra', fmtN(T.cc), (withBase.length?`${fmtN(T.nc)} sin compra`:'Cargá la base para ver sin compra')+' · por categoría',
+      miniBarras(porCat(ccCat).map(x=>({...x,tip:`${x.n}: ${fmtN(x.v)} clientes`})))]
+  ].map(k=>`<div class="kpi kv" style="--kc:${k[0]}"><div class="l">${k[1]}</div><div class="v">${k[2]}</div><div class="n">${k[3]}</div>${k[4]||''}</div>`).join('');
 
   renderSol(rs);
   const miss = rs.length - withBase.length;
