@@ -134,8 +134,8 @@ tr.ncr input[type=search]{width:100%;max-width:340px;margin-bottom:8px}
     <label>Día de venta <select id="fDia" aria-label="Día de venta"><option value="">Mes completo</option></select></label>
     <label>Supervisor
       <select id="fSup"><option value="">Todos</option></select></label>
-    <label>Importe
-      <select id="fImp"><option value="neto">Neto sin IVA</option><option value="bruto">Con IVA</option></select></label>
+    <!-- importes siempre con IVA (pedido de Bruno, 15/10/2026) -->
+    <select id="fImp" hidden aria-hidden="true"><option value="bruto" selected>Con IVA</option></select>
     <label>Días transcurridos <input type="number" id="dT" min="1" max="31"></label>
     <label>Días hábiles mes <input type="number" id="dH" min="1" max="31"></label>
   </div>
