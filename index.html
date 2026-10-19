@@ -463,8 +463,8 @@ function miniBarras(items){
     + items.map((i,n)=>`<span class="mb" tabindex="0" data-tip="${esc(i.tip)}" style="height:${Math.max(vals[n]/max*100,1.5)}%"></span>`).join('') + '</div>'
     + (items.some(i=>i.c)? `<div class="mlab">${items.map(i=>`<span>${esc(i.c)}</span>`).join('')}</div>` : '') + '</div>';
 }
-function chipc(a){ return a>=.9?'#7CFF6B':a>=.4?'#FFE14D':'#FF6B6B'; }   // rangos fijos: <40% rojo, 40-89% amarillo, 90%+ verde
-function color(a){ return a>=.9?'var(--ok)':a>=.4?'var(--mid)':'var(--low)'; }
+function chipc(a){ return a>=.9?'#7CFF6B':a>=.5?'#FFE14D':'#FF6B6B'; }   // rangos fijos: <50% rojo, 50-89% amarillo, 90%+ verde
+function color(a){ return a>=.9?'var(--ok)':a>=.5?'var(--mid)':'var(--low)'; }
 function cell(r,c){
   switch(c.k){
     case 'cod': return `<td class="l cod"><button class="tg" type="button" data-tg="${r.cod}" aria-expanded="${abiertos.has(r.cod)}" aria-label="Ver categorías de ${r.nom}">${abiertos.has(r.cod)?'−':'+'}</button>${r.cod}</td>`;
