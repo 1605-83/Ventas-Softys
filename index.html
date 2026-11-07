@@ -243,6 +243,8 @@ const CAT_PREF = [[/^TH\b/,'th'],[/^RC\b/,'rc'],[/^(PH\b|HIGIENICO)/,'ph'],[/^TO
 const catDe = (fam, art, cod) => { const f=normFam(fam); const c=CATS.find(c=>c[2].includes(f)); if(c) return c[0];
   if(CAT_COD[cod]) return CAT_COD[cod];
   const a=normFam(art); const pr=CAT_PREF.find(([re])=>re.test(a)); return pr? pr[1] : 'ot'; };
+// periodo de los objetivos de cada mes (Bruno, 07/11/2026: los de noviembre van del 03/11 al 30/11), igual que el Reporte diario
+const PERIODO_OBJ = {'2026-11':{d:'2026-11-03',h:'2026-11-30'}};
 const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 
 function parseCSV(txt){
@@ -283,7 +285,7 @@ function procesar(txt, nombre){
   const rows=parseCSV(txt).filter(r=>r.length>5);
   const H=rows.shift().map(h=>h.trim()); const ix=n=>{const i=H.indexOf(n); if(i<0) throw new Error('Falta la columna '+n); return i;};
   const I={cli:ix('Cliente'),emp:ix('Empresa'),fc:ix('FechaComprobante'),cod:ix('Codigo'),cant:ix('CantBase'),neto:ix('ImporteNetoItem'),bruto:ix('ImporteItem'),cv:ix('CodVendedor'),vn:ix('Vendedor'),art:ix('Articulo'),sup:ix('NomSupervisor'),fam:H.indexOf('Familia'),rs:H.indexOf('RazonSocial'),dir:H.indexOf('Direccion'),loc:H.indexOf('Localidad')};
-  const V={}, arts={}, vu={}, fechas=new Set(), allnet={};
+  const V={}, arts={}, vu={}, fechas=new Set(), allnet={}, NOMS={};
   // el CSV trae el mes por cualquiera de las tres fechas: se queda con el mes en curso (el de la ultima carga) segun la fecha elegida
   const ien=H.indexOf('FechaEntrega'), ica=H.indexOf('FechaCarga');
   let ymSel=''; rows.forEach(r=>{ const c=isoDe(ica>=0? r[ica] : r[I.fc]); if(c&&c<=HOY_ISO&&c.slice(0,7)>ymSel) ymSel=c.slice(0,7); });
@@ -293,7 +295,9 @@ function procesar(txt, nombre){
     const neto=num(r[I.neto]), bruto=num(r[I.bruto]), cant=num(r[I.cant]), ac=String(parseInt(r[I.cod],10));
     const fx=fechaTipo(r[I.fc], ien>=0? r[ien] : '', ica>=0? r[ica] : ''); if(!fx||fx>HOY_ISO||(ymSel&&fx.slice(0,7)!==ymSel)) return;
     fechas.add(fx);
+    if(!NOMS[cv]) NOMS[cv]=[titulo(r[I.vn]), titulo(r[I.sup]||'Sin supervisor')||'Sin supervisor'];
     if(DIA&&fx!==DIA) return;
+    const PO=PERIODO_OBJ[ymSel]; if(!DIA&&PO&&(fx<PO.d||fx>PO.h)) return;   // vista del mes: solo la venta del periodo del objetivo
     const v = V[cv] || (V[cv]={cod:cv,nom:titulo(r[I.vn]),sup:titulo(r[I.sup]||'Sin supervisor')||'Sin supervisor',neto:0,bruto:0,bultos:0,cli:{},cat:{},cid:{}});
     v.neto+=neto; v.bruto+=bruto; v.bultos+=cant;
     const k=r[I.emp]+'|'+r[I.cli]; v.cli[k]=(v.cli[k]||0)+neto;
@@ -306,14 +310,17 @@ function procesar(txt, nombre){
       arts[ac]={c:+ac,a,f,s,u:0,k:ck}; }
     if(VEND.includes(cv)){ arts[ac].u+=cant; const m=vu[cv]||(vu[cv]={}); m[ac]=(m[ac]||0)+cant; }
   });
+  // los vendedores sin venta en el dia elegido igual aparecen (con su objetivo del mes)
+  for(const c of VEND) if(!V[c] && NOMS[c]) V[c]={cod:c,nom:NOMS[c][0],sup:NOMS[c][1],neto:0,bruto:0,bultos:0,cli:{},cat:{},cid:{}};
   const lista=Object.values(V).filter(v=>VEND.includes(v.cod)).map(v=>({cod:v.cod,nom:v.nom,sup:v.sup,
     cc:Object.values(v.cli).filter(x=>x>0.5).length,cat:Object.fromEntries(Object.entries(v.cat).map(([k,c])=>[k,{neto:c.neto,bruto:c.bruto,cc:Object.values(c.cli).filter(x=>x>0.5).length}])),neto:v.neto,bruto:v.bruto,bultos:v.bultos,bd:BASE[v.cod],cid:v.cid}));
   // fechas y días
   const fs=[...fechas].filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d)).sort(); const ult=fs[fs.length-1];
   const ym=ult.slice(0,7), [y,mo]=ym.split('-').map(Number);
-  const dT=fs.filter(d=>d.startsWith(ym)).length;
+  const PO=PERIODO_OBJ[ym]||null;
+  const dT=fs.filter(d=>d.startsWith(ym) && (!PO || (d>=PO.d && d<=PO.h))).length;
   let dH=0; const nd=new Date(y,mo,0).getDate();
-  for(let d=1;d<=nd;d++){ const dt=new Date(y,mo-1,d), wd=dt.getDay(); const iso=ym+'-'+String(d).padStart(2,'0'); if(wd>0&&wd<6&&!FERIADOS.has(iso)) dH++; }
+  for(let d=1;d<=nd;d++){ const dt=new Date(y,mo-1,d), wd=dt.getDay(); const iso=ym+'-'+String(d).padStart(2,'0'); if(wd>0&&wd<6&&!FERIADOS.has(iso)&&(!PO||(iso>=PO.d&&iso<=PO.h))) dH++; }
   let corte; const st=(nombre||'').match(/(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})\d{2}/);
   corte = st? `${st[3]}/${st[2]}/${st[1]} ${st[4]}:${st[5]}` : ult.split('-').reverse().join('/');
   return {DATA:{v:lista,allnet}, CONV:{arts:Object.values(arts).filter(a=>a.u!==0), vu},
@@ -390,10 +397,10 @@ const fac = a => { const o = store.fac[a.c]; return (o!=null && +o>0) ? +o : a.f
 const bultosDe = vcod => { const m = CONV.vu[vcod]||{}; return CONV.arts.reduce((s,a)=> s + (m[a.c]||0)/fac(a), 0); };
 const save = ()=>{ try{ localStorage.setItem(STORE_KEY, JSON.stringify(store)); }catch(e){} };
 
-// un día: el objetivo es el del mes dividido por los días hábiles y el ideal es el 100% de ese objetivo diario
-const fObj = META.dia? 1/META.dH : 1, PER = META.dia? 'el '+fdia(META.dia) : 'en '+META.mes;
-if(META.dia){ $('dT').value=$('dH').value=1; $('dT').disabled=$('dH').disabled=true; }
-else { $('dT').value = store.dT || META.dT; $('dH').value = store.dH || META.dH; }
+// el objetivo no cambia al elegir un día: siempre es el del mes entero (Bruno, 07/11/2026)
+const fObj = 1, PER = META.dia? 'el '+fdia(META.dia) : 'en '+META.mes;
+if(META.dia){ $('dT').value=1; $('dH').value=META.dH; $('dT').disabled=$('dH').disabled=true; }
+else { $('dT').value = store.dT || META.dT; $('dH').value = (!PERIODO_OBJ[META.ym] && store.dH) || META.dH; }
 [...new Set(DATA.v.map(v=>v.sup))].sort().forEach(s=>{const o=document.createElement('option');o.value=o.textContent=s;$('fSup').appendChild(o)});
 
 const COLS = [
@@ -491,7 +498,7 @@ function render(){
   // days
   if(META.dia){
     $('daysBig').innerHTML = `${fdia(META.dia)}<small> ${DIAS_SEM[new Date(META.dia+'T12:00').getDay()]}</small>`; $('track').innerHTML = '';
-    $('dlabel').textContent = `Venta de un solo día. El objetivo del día es el del mes dividido por ${META.dH} días hábiles. Elegí "Mes completo" para volver al acumulado.`;
+    $('dlabel').textContent = `Venta de un solo día. El objetivo es el del mes entero. Elegí "Mes completo" para volver al acumulado.`;
   } else {
   $('daysBig').innerHTML = `${dT}<small> de ${dH}</small>`;
   $('track').innerHTML = Array.from({length:dH},(_,i)=>`<span class="${i<dT?'done':''}">${i+1}</span>`).join('');
@@ -530,7 +537,7 @@ function render(){
   const cobOrd=withBase.filter(r=>r.base).map(r=>({c:'',v:r.cc/r.base,tip:`${r.cod} · ${r.nom}: ${fmtP(r.cc/r.base)} (${fmtN(r.cc)} de ${fmtN(r.base)} clientes)`})).sort((a,b)=>b.v-a.v);
   const tCob=withBase.length? withBase.reduce((a,r)=>a+r.cc,0)/T.base : null;
   $('kpis').innerHTML = [
-    ['#FFD60A',META.dia?'Objetivo del día':'Objetivo del mes', T.obj?fmt$(T.obj):'—', 'Por categoría',
+    ['#FFD60A','Objetivo del mes', T.obj?fmt$(T.obj):'—', 'Por categoría',
       miniBarras(porCat(objCat).map(x=>({...x,tip:`${x.n}: ${fmt$(x.v)}`})))],
     ['#2EE6F0',META.dia?'Venta del día':'Facturación al día', fmt$(T.fact), (imp==='neto'?'Neto sin IVA':'Con IVA')+' · por categoría',
       miniBarras(porCat(factCat).map(x=>({...x,tip:`${x.n}: ${fmt$(x.v)}${objCat(x.k)? ' · '+fmtP(x.v/objCat(x.k))+' del objetivo' : ''}`})))],
