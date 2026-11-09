@@ -321,10 +321,14 @@ function procesar(txt, nombre){
   const dT=fs.filter(d=>d.startsWith(ym) && (!PO || (d>=PO.d && d<=PO.h))).length;
   let dH=0; const nd=new Date(y,mo,0).getDate();
   for(let d=1;d<=nd;d++){ const dt=new Date(y,mo-1,d), wd=dt.getDay(); const iso=ym+'-'+String(d).padStart(2,'0'); if(wd>0&&wd<6&&!FERIADOS.has(iso)&&(!PO||(iso>=PO.d&&iso<=PO.h))) dH++; }
+  // noviembre 2026: 20 dias de venta fijos (pedido de Bruno, 09/11/2026)
+  const DH_FIJO={'2026-11':20}; if(DH_FIJO[ym]) dH=DH_FIJO[ym];
+  // al elegir un dia: dias de venta del mes hasta esa fecha inclusive
+  const dTd= DIA? fs.filter(d=>d.startsWith(ym) && d<=DIA && (typeof PO==='undefined' || !PO || (d>=PO.d && d<=PO.h))).length : 0;
   let corte; const st=(nombre||'').match(/(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})\d{2}/);
   corte = st? `${st[3]}/${st[2]}/${st[1]} ${st[4]}:${st[5]}` : ult.split('-').reverse().join('/');
   return {DATA:{v:lista,allnet}, CONV:{arts:Object.values(arts).filter(a=>a.u!==0), vu},
-          META:{ym, mes:MESES[mo-1]+' '+y, dT:Math.max(dT,1), dH, corte, nombre, dia:DIA, dias:fs.filter(d=>d.startsWith(ym)).reverse()}};
+          META:{ym, mes:MESES[mo-1]+' '+y, dT:Math.max(dT,1), dTd:Math.max(dTd,1), dH, corte, nombre, dia:DIA, dias:fs.filter(d=>d.startsWith(ym)).reverse()}};
 }
 
 async function cargarRepo(){
@@ -401,8 +405,8 @@ const save = ()=>{ try{ localStorage.setItem(STORE_KEY, JSON.stringify(store)); 
 const fObj = 1, PER = META.dia? 'el '+fdia(META.dia) : 'en '+META.mes;
 // los dias se pueden cambiar siempre, tambien al ver un dia o un rango (pedido de Bruno, 09/11/2026); se recuerdan por periodo
 const DKEY = META.dia? 'dia_'+META.dia : 'mes'; store.dias = store.dias || {};
-if(META.dia){ const sd=store.dias[DKEY]||{}; $('dT').value=sd.dT||1; $('dH').value=sd.dH||META.dH; }
-else { const sd=store.dias[DKEY]||{}; $('dT').value = sd.dT || store.dT || META.dT; $('dH').value = sd.dH || (!PERIODO_OBJ[META.ym] && store.dH) || META.dH; }
+if(META.dia){ const sd=store.dias[DKEY]||{}; $('dT').value=sd.dT||META.dTd; $('dH').value=sd.dH||META.dH; }
+else { const sd=store.dias[DKEY]||{}; $('dT').value = sd.dT || META.dT; $('dH').value = sd.dH || META.dH; }
 [...new Set(DATA.v.map(v=>v.sup))].sort().forEach(s=>{const o=document.createElement('option');o.value=o.textContent=s;$('fSup').appendChild(o)});
 
 const COLS = [
