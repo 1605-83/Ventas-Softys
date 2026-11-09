@@ -67,6 +67,10 @@ button.ghost{background:transparent;color:var(--ink);border:1px solid var(--ink)
 .c-cob{background:#2EE6F0}.c-cli{background:#C29BFF}.c-bul{background:#5C9BFF}
 th.c-fact,th.c-proy,th.c-pct,th.c-cob,th.c-cli,th.c-bul{color:#000}
 .chip{display:inline-block;min-width:58px;padding:2px 8px;border-radius:999px;border:1px solid #000;font-weight:700;color:#000}
+.pbar{position:relative;display:inline-block;width:110px;height:24px;background:#E6E6E6;border:1px solid #BDBDBD;border-radius:6px;overflow:hidden;vertical-align:middle}
+.pbar i{position:absolute;left:0;top:0;bottom:0}
+.pbar b{position:relative;display:block;text-align:center;line-height:22px;font-weight:700;color:#000}
+.pbar b.cl{color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.35)}
 
 .note{margin:18px 0 10px;font-size:.9rem;background:#FFF8D6;border:1px solid var(--mid);border-radius:6px;padding:10px 12px;display:none}
 .tbl{overflow-x:auto;margin-top:16px;border:1px solid var(--ink);border-radius:8px;background:var(--panel)}
@@ -202,6 +206,9 @@ tr.ncr input[type=search]{width:100%;max-width:340px;margin-bottom:8px}
 </div>
 
 <script>
+// barra que se llena con el numero adentro (formato C del Reporte diario, pedido de Bruno, 09/11/2026)
+const PBAR_C={'#7CFF6B':'#2EBD4E','#FFE14D':'#F2C200','#FF6B6B':'#E5484D'};
+function pbarC(v,c){ c=PBAR_C[String(c).toUpperCase()]||c; const bl=(c==='#2EBD4E'||c==='#E5484D')&&v>=.5; return `<span class="pbar"><i style="width:${Math.max(0,Math.min(100,v*100))}%;background:${c}"></i><b${bl?' class="cl"':''}>${(v*100).toLocaleString('es-AR',{minimumFractionDigits:1,maximumFractionDigits:1})}%</b></span>`; }
 // Lista de archivos del repo: primero archivos.json (lo arma el robot, se sirve desde el mismo sitio y no tiene
 // limite de consultas); si no esta, la API de GitHub (60 consultas por hora por conexion).
 async function contenidoRepo(apiUrl, carpeta){
@@ -449,7 +456,7 @@ function catRow(r){
   const max=Math.max(...lst.map(([,c])=>c?c[imp]:0),1);
   const oc=OBJ_CAT[r.cod]||{}, ideal=(+$('dT').value||1)/(+$('dH').value||1);
   const keys=CATS.map(c=>c[0]); if(lst.length>CATS.length) keys.push('ot');
-  const chipA=(f,o)=> o? `<span class="chip" style="background:${chipc(f/o)}">${fmtP(f/o)}</span>` : '<span class="muted">—</span>';
+  const chipA=(f,o)=> o? `${pbarC(f/o,chipc(f/o))}` : '<span class="muted">—</span>';
   const body=lst.map(([t,c],i)=>{const f=c?c[imp]:0, cc=c?c.cc:0, o=(oc[keys[i]]||0)*fObj;
     return `<tr${f||o?'':' class="cero"'}><td class="l">${t}</td><td>${o?fmt$(o):'<span class="muted">—</span>'}</td><td>${fmt$(f)}<span class="cbar"><i style="width:${Math.max(f,0)/max*100}%"></i></span></td><td>${chipA(f,o)}</td><td>${o?fmt$(Math.max(o-f,0)):'<span class="muted">—</span>'}</td><td>${tot?fmtP(f/tot):'—'}</td><td>${fmtN(cc)}</td></tr>`}).join('');
   return `<tr class="cat"><td colspan="${COLS.length}"><table><thead><tr><th class="l">Categoría</th><th>Objetivo $</th><th>Facturación</th><th>Alcance %</th><th>Falta $</th><th>% del vendedor</th><th>Clientes con compra</th></tr></thead><tbody>${body}</tbody><tfoot><tr><td class="l">Total ${r.nom}</td><td>${r.obj?fmt$(r.obj):'—'}</td><td>${fmt$(tot)}</td><td>${chipA(tot,r.obj)}</td><td>${r.obj?fmt$(Math.max(r.obj-tot,0)):'—'}</td><td>100,0%</td><td>${fmtN(r.cc)}</td></tr></tfoot></table></td></tr>`;
@@ -487,8 +494,8 @@ function cell(r,c){
     case 'obj': return `<td>${r.obj==null?'<span class="muted">—</span>':fmt$(r.obj)}</td>`;
     case 'cc': return `<td>${fmtN(r.cc)}</td>`;
     case 'nc': return `<td>${r.nc==null?'<span class="muted">—</span>':fmtN(r.nc)}</td>`;
-    case 'cob': return `<td>${r.cob==null?'<span class="muted">—</span>':`<span class="chip" style="background:${r.cob>=.9?'#7CFF6B':r.cob>=.5?'#FFE14D':'#FF6B6B'}">${fmtP(r.cob)}</span>`}</td>`;
-    case 'av': return `<td>${r.av==null?'<span class="muted">sin objetivo</span>':`<span class="chip" style="background:${chipc(r.av)}">${fmtP(r.av)}</span>`}</td>`;
+    case 'cob': return `<td>${r.cob==null?'<span class="muted">—</span>':`${pbarC(r.cob,r.cob>=.9?'#7CFF6B':r.cob>=.5?'#FFE14D':'#FF6B6B')}`}</td>`;
+    case 'av': return `<td>${r.av==null?'<span class="muted">sin objetivo</span>':`${pbarC(r.av,chipc(r.av))}`}</td>`;
     case 'part': return `<td>${fmtP(r.part)}</td>`;
     case 'fact': return `<td>${fmt$(r.fact)}</td>`;
     case 'proy': return `<td>${fmt$(r.proy)}</td>`;
@@ -497,7 +504,7 @@ function cell(r,c){
     case 'alc':
       if(r.alc==null) return `<td><span class="muted">sin objetivo</span></td>`;
       const w=Math.min(r.alc/1.2,1)*100;
-      return `<td><div class="alc"><span class="chip" style="background:${chipc(r.alc)}">${fmtP(r.alc)}</span><span class="meter" title="La línea marca el 100%"><i style="width:${w}%;background:${color(r.alc)}"></i><b></b></span></div></td>`;
+      return `<td>${pbarC(r.alc,chipc(r.alc))}</td>`;
   }
 }
 function render(){
@@ -526,7 +533,7 @@ function render(){
   const tAlc = T.obj? T.proyObj/T.obj : null, tAv = T.obj? T.factObj/T.obj : null;
   const TF = {
     obj: T.obj?fmt$(T.obj):'—', fact: fmt$(T.fact),
-    av: tAv==null?'—':`<span class="chip" style="background:${chipc(tAv)}">${fmtP(tAv)}</span>`,
+    av: tAv==null?'—':`${pbarC(tAv,chipc(tAv))}`,
     proy: fmt$(T.proy), cc: fmtN(T.cc),
     cob: withBase.length?fmtP(withBase.reduce((a,r)=>a+r.cc,0)/T.base):'—',
     nc: withBase.length?fmtN(T.nc):'—', bul: fmtB(T.bul),
