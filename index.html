@@ -399,8 +399,10 @@ const save = ()=>{ try{ localStorage.setItem(STORE_KEY, JSON.stringify(store)); 
 
 // el objetivo no cambia al elegir un día: siempre es el del mes entero (Bruno, 07/11/2026)
 const fObj = 1, PER = META.dia? 'el '+fdia(META.dia) : 'en '+META.mes;
-if(META.dia){ $('dT').value=1; $('dH').value=META.dH; $('dT').disabled=$('dH').disabled=true; }
-else { $('dT').value = store.dT || META.dT; $('dH').value = (!PERIODO_OBJ[META.ym] && store.dH) || META.dH; }
+// los dias se pueden cambiar siempre, tambien al ver un dia o un rango (pedido de Bruno, 09/11/2026); se recuerdan por periodo
+const DKEY = META.dia? 'dia_'+META.dia : 'mes'; store.dias = store.dias || {};
+if(META.dia){ const sd=store.dias[DKEY]||{}; $('dT').value=sd.dT||1; $('dH').value=sd.dH||META.dH; }
+else { const sd=store.dias[DKEY]||{}; $('dT').value = sd.dT || store.dT || META.dT; $('dH').value = sd.dH || (!PERIODO_OBJ[META.ym] && store.dH) || META.dH; }
 [...new Set(DATA.v.map(v=>v.sup))].sort().forEach(s=>{const o=document.createElement('option');o.value=o.textContent=s;$('fSup').appendChild(o)});
 
 const COLS = [
@@ -583,7 +585,7 @@ $('ncPanel').addEventListener('input',e=>{const q=e.target.dataset.ncq;if(!q)ret
   $('ncb'+q).innerHTML=ncFilas(ncDe(v).filter(c=>(c.id+' '+c.n+' '+c.a+' '+c.l+' '+c.ramo+' '+(DIAS[c.dia]||'')).toLowerCase().includes(tx)));});
 $('tbody').addEventListener('change',e=>{const i=e.target;if(!i.dataset.f)return;store[i.dataset.f][i.dataset.c]=i.value;save();render();});
 ['fSup','fImp'].forEach(id=>$(id).addEventListener('change',render));
-['dT','dH'].forEach(id=>$(id).addEventListener('change',()=>{store[id]=+$(id).value;save();render();}));
+['dT','dH'].forEach(id=>$(id).addEventListener('change',()=>{store.dias[DKEY]={dT:+$('dT').value,dH:+$('dH').value};save();render();}));
 $('pasteBtn').addEventListener('click',()=>{
   let n=0; const codes=new Set(DATA.v.map(v=>String(v.cod)));
   $('pasteTxt').value.split(/\r?\n/).forEach(line=>{
