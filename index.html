@@ -318,13 +318,14 @@ function procesar(txt, nombre){
   const fs=[...fechas].filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d)).sort(); const ult=fs[fs.length-1];
   const ym=ult.slice(0,7), [y,mo]=ym.split('-').map(Number);
   const PO=PERIODO_OBJ[ym]||null;
-  const dT=fs.filter(d=>d.startsWith(ym) && (!PO || (d>=PO.d && d<=PO.h))).length;
+  let dT=fs.filter(d=>d.startsWith(ym) && (!PO || (d>=PO.d && d<=PO.h))).length;
   let dH=0; const nd=new Date(y,mo,0).getDate();
   for(let d=1;d<=nd;d++){ const dt=new Date(y,mo-1,d), wd=dt.getDay(); const iso=ym+'-'+String(d).padStart(2,'0'); if(wd>0&&wd<6&&!FERIADOS.has(iso)&&(!PO||(iso>=PO.d&&iso<=PO.h))) dH++; }
   // noviembre 2026: 20 dias de venta fijos (pedido de Bruno, 09/11/2026)
   const DH_FIJO={'2026-11':20}; if(DH_FIJO[ym]) dH=DH_FIJO[ym];
+  if(DH_FIJO[ym]) dT=fs.filter(d=>d.startsWith(ym)).length;   // con los 20 dias fijos cuenta desde el 1 del mes
   // al elegir un dia: dias de venta del mes hasta esa fecha inclusive
-  const dTd= DIA? fs.filter(d=>d.startsWith(ym) && d<=DIA && (typeof PO==='undefined' || !PO || (d>=PO.d && d<=PO.h))).length : 0;
+  const dTd= DIA? fs.filter(d=>d.startsWith(ym) && d<=DIA && (typeof PO==='undefined' || !PO || DH_FIJO[ym] || (d>=PO.d && d<=PO.h))).length : 0;
   let corte; const st=(nombre||'').match(/(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})\d{2}/);
   corte = st? `${st[3]}/${st[2]}/${st[1]} ${st[4]}:${st[5]}` : ult.split('-').reverse().join('/');
   return {DATA:{v:lista,allnet}, CONV:{arts:Object.values(arts).filter(a=>a.u!==0), vu},
