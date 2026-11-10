@@ -208,7 +208,7 @@ tr.ncr input[type=search]{width:100%;max-width:340px;margin-bottom:8px}
 <script>
 // barra que se llena con el numero adentro (formato C del Reporte diario, pedido de Bruno, 09/11/2026)
 const PBAR_C={'#7CFF6B':'#2EBD4E','#FFE14D':'#F2C200','#FF6B6B':'#E5484D'};
-function pbarC(v,c){ c=PBAR_C[String(c).toUpperCase()]||c; const bl=(c==='#2EBD4E'||c==='#E5484D')&&v>=.5; return `<span class="pbar"><i style="width:${Math.max(0,Math.min(100,v*100))}%;background:${c}"></i><b${bl?' class="cl"':''}>${(v*100).toLocaleString('es-AR',{minimumFractionDigits:1,maximumFractionDigits:1})}%</b></span>`; }
+function pbarC(v,c){ c=PBAR_C[String(c).toUpperCase()]||c; const bl=(c==='#2EBD4E'||c==='#E5484D')&&v>=.62; return `<span class="pbar"><i style="width:${Math.max(0,Math.min(100,v*100))}%;background:${c}"></i><b${bl?' class="cl"':''}>${(v*100).toLocaleString('es-AR',{minimumFractionDigits:1,maximumFractionDigits:1})}%</b></span>`; }
 // Lista de archivos del repo: primero archivos.json (lo arma el robot, se sirve desde el mismo sitio y no tiene
 // limite de consultas); si no esta, la API de GitHub (60 consultas por hora por conexion).
 async function contenidoRepo(apiUrl, carpeta){
