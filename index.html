@@ -47,8 +47,8 @@ button.ghost{background:transparent;color:var(--ink);border:1px solid var(--ink)
 .track span.done{background:var(--ink);color:#fff}
 .dlabel{font-size:.85rem;color:var(--ink2);margin-top:6px}
 
-.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;align-items:stretch}
-@media (max-width:1100px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:14px;align-items:stretch}
+@media (max-width:1350px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:640px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .kpi{display:grid;grid-template-rows:auto auto 1fr;padding:14px 16px;border:2px solid var(--ink);border-radius:10px;box-shadow:5px 5px 0 var(--ink);color:#000;min-width:0}
 .kpi .l{font-size:.9rem;font-weight:600;line-height:1.2;min-height:2.4em}
@@ -311,7 +311,7 @@ function procesar(txt, nombre){
     const k=r[I.emp]+'|'+r[I.cli]; v.cli[k]=(v.cli[k]||0)+neto;
     const cid=String(r[I.cli]).trim().replace(/^0+(?=.)/,''); allnet[cid]=(allnet[cid]||0)+neto; const ci=v.cid[cid]||(v.cid[cid]={net:0,n:(r[I.rs]||'').trim(),a:(r[I.dir]||'').trim(),l:(r[I.loc]||'').trim()}); ci.net+=neto;
     const ck=catDe(I.fam>=0? r[I.fam] : '', r[I.art], ac); const cc=v.cat[ck]||(v.cat[ck]={neto:0,bruto:0,cli:{}});
-    cc.neto+=neto; cc.bruto+=bruto; cc.cli[k]=(cc.cli[k]||0)+neto;
+    cc.neto+=neto; cc.bruto+=bruto; if(I.costo>=0) cc.cos=(cc.cos||0)+num(r[I.costo]); cc.cli[k]=(cc.cli[k]||0)+neto;
     if(!arts[ac]){ const a=(r[I.art]||'').trim(); let f,s;
       if(FAC_MANUAL[ac]){ f=FAC_MANUAL[ac][0]; s=FAC_MANUAL[ac][1]; }
       else { const ms=[...a.matchAll(/(\d+)\s*[x\/]\s*(\d+)/ig)]; if(ms.length){ f=+ms[ms.length-1][2]||1; s='Del nombre del artículo'; } else { f=1; s='Sin dato en el nombre'; } }
@@ -321,7 +321,7 @@ function procesar(txt, nombre){
   // los vendedores sin venta en el dia elegido igual aparecen (con su objetivo del mes)
   for(const c of VEND) if(!V[c] && NOMS[c]) V[c]={cod:c,nom:NOMS[c][0],sup:NOMS[c][1],neto:0,cos:0,bruto:0,bultos:0,cli:{},cat:{},cid:{}};
   const lista=Object.values(V).filter(v=>VEND.includes(v.cod)).map(v=>({cod:v.cod,nom:v.nom,sup:v.sup,
-    cc:Object.values(v.cli).filter(x=>x>0.5).length,cat:Object.fromEntries(Object.entries(v.cat).map(([k,c])=>[k,{neto:c.neto,bruto:c.bruto,cc:Object.values(c.cli).filter(x=>x>0.5).length}])),neto:v.neto,cos:v.cos||0,bruto:v.bruto,bultos:v.bultos,bd:BASE[v.cod],cid:v.cid}));
+    cc:Object.values(v.cli).filter(x=>x>0.5).length,cat:Object.fromEntries(Object.entries(v.cat).map(([k,c])=>[k,{neto:c.neto,bruto:c.bruto,cos:c.cos||0,cc:Object.values(c.cli).filter(x=>x>0.5).length}])),neto:v.neto,cos:v.cos||0,bruto:v.bruto,bultos:v.bultos,bd:BASE[v.cod],cid:v.cid}));
   // fechas y días
   const fs=[...fechas].filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d)).sort(); const ult=fs[fs.length-1];
   const ym=ult.slice(0,7), [y,mo]=ym.split('-').map(Number);
@@ -550,6 +550,10 @@ function render(){
   const porCat=f=>CATS.map(([k,n])=>({k,n,c:CORTO[k]||k,v:f(k)}));
   const objCat=k=>rs.reduce((a,r)=>a+((OBJ_CAT[r.cod]||{})[k]||0),0)*fObj;
   const factCat=k=>rs.reduce((a,r)=>a+(((r.cat||{})[k]||{})[imp]||0),0);
+  // margen por categoria (pedido de Bruno, 25/11/2026): venta neta sin IVA menos costo, sobre la venta neta
+  const netCat=k=>rs.reduce((a,r)=>a+(((r.cat||{})[k]||{}).neto||0),0), cosCat=k=>rs.reduce((a,r)=>a+(((r.cat||{})[k]||{}).cos||0),0);
+  const margCat=k=>{ const n=netCat(k); return n>0.5? (n-cosCat(k))/n : 0; };
+  const tNet=rs.reduce((a,r)=>a+(r.neto||0),0), tMarg=tNet>0.5? (tNet-rs.reduce((a,r)=>a+(r.cos||0),0))/tNet : null;
   const ccCat=k=>rs.reduce((a,r)=>a+(((r.cat||{})[k]||{}).cc||0),0);
   const cobOrd=withBase.filter(r=>r.base).map(r=>({c:'',v:r.cc/r.base,tip:`${r.cod} · ${r.nom}: ${fmtP(r.cc/r.base)} (${fmtN(r.cc)} de ${fmtN(r.base)} clientes)`})).sort((a,b)=>b.v-a.v);
   const tCob=withBase.length? withBase.reduce((a,r)=>a+r.cc,0)/T.base : null;
@@ -560,6 +564,8 @@ function render(){
       miniBarras(porCat(factCat).map(x=>({...x,tip:`${x.n}: ${fmt$(x.v)}${objCat(x.k)? ' · '+fmtP(x.v/objCat(x.k))+' del objetivo' : ''}`})))],
     ['#FF7AC0','Proyectado $ al cierre', fmt$(T.proy), `Al ritmo actual, ${dT} de ${dH} días hábiles`,
       miniBarras(porCat(k=>factCat(k)/dT*dH).map(x=>({...x,tip:`${x.n}: ${fmt$(x.v)}${objCat(x.k)? ' · '+fmtP(x.v/objCat(x.k))+' del objetivo' : ''}`})))],
+    ['#B5F23D','Margen', tMarg==null?'—':fmtP(tMarg), 'Sobre venta neta sin IVA · por categoría',
+      miniBarras(porCat(margCat).map(x=>({...x,tip:`${x.n}: ${fmtP(x.v)} de margen (${fmt$(netCat(x.k)-cosCat(x.k))} sobre ${fmt$(netCat(x.k))} neto)`})))],
     ['#C29BFF','Cobertura', tCob==null?'—':fmtP(tCob), withBase.length?`Sobre ${fmtN(T.base)} clientes · por vendedor`:'Cargá la base de clientes', miniBarras(cobOrd)],
     ['#FFA94D','Clientes con compra', fmtN(T.cc), (withBase.length?`${fmtN(T.nc)} sin compra`:'Cargá la base para ver sin compra')+' · por categoría',
       miniBarras(porCat(ccCat).map(x=>({...x,tip:`${x.n}: ${fmtN(x.v)} clientes`})))]
