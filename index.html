@@ -492,8 +492,8 @@ function miniBarras(items){
 }
 function chipc(a){ return a>=.9?'#7CFF6B':a>=.8?'#FFE14D':'#FF6B6B'; }   // alcance (pedido de Bruno, 25/11/2026): 0-79% rojo, 80-89% amarillo, 90%+ verde
 function chipCob(a){ return a>=.7?'#7CFF6B':a>=.5?'#FFE14D':'#FF6B6B'; }   // cobertura: 0-49% rojo, 50-69% amarillo, 70%+ verde
-// barra del margen (pedido de Bruno, 25/11/2026): llena al 30% de margen; verde lima, roja si es negativo
-function pbarM(v){ return `<span class="pbar" title="Margen ${fmtP(v)} sobre venta neta sin IVA"><i style="width:${Math.max(0,Math.min(100,v/.3*100))}%;background:${v<0?'#E5484D':'#B5F23D'}"></i><b>${fmtP(v)}</b></span>`; }
+// barra del margen (pedido de Bruno, 25/11/2026): llena al 40%; 0-14% rojo, 15-17% amarillo, 18%+ verde
+function pbarM(v){ return `<span class="pbar" title="Margen ${fmtP(v)} sobre venta neta sin IVA"><i style="width:${Math.max(0,Math.min(100,v/.4*100))}%;background:${v>=.18?'#2EBD4E':v>=.15?'#F2C200':'#E5484D'}"></i><b>${fmtP(v)}</b></span>`; }
 function color(a){ return a>=.9?'var(--ok)':a>=.5?'var(--mid)':'var(--low)'; }
 function cell(r,c){
   switch(c.k){
