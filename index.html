@@ -472,9 +472,10 @@ function catRow(r){
   const oc=OBJ_CAT[r.cod]||{}, ideal=(+$('dT').value||1)/(+$('dH').value||1);
   const keys=CATS.map(c=>c[0]); if(lst.length>CATS.length) keys.push('ot');
   const chipA=(f,o)=> o? `${pbarC(f/o,chipc(f/o))}` : '<span class="muted">—</span>';
+  const mgC=c=> c&&c.neto>0.5? pbarM((c.neto-(c.cos||0))/c.neto) : '<span class="muted">—</span>';   // margen por categoria (pedido de Bruno, 25/11/2026)
   const body=lst.map(([t,c],i)=>{const f=c?c[imp]:0, cc=c?c.cc:0, o=(oc[keys[i]]||0)*fObj;
-    return `<tr${f||o?'':' class="cero"'}><td class="l">${t}</td><td>${o?fmt$(o):'<span class="muted">—</span>'}</td><td>${fmt$(f)}<span class="cbar"><i style="width:${Math.max(f,0)/max*100}%"></i></span></td><td>${chipA(f,o)}</td><td>${o?fmt$(Math.max(o-f,0)):'<span class="muted">—</span>'}</td><td>${tot?fmtP(f/tot):'—'}</td><td>${fmtN(cc)}</td></tr>`}).join('');
-  return `<tr class="cat"><td colspan="${COLS.length}"><table><thead><tr><th class="l">Categoría</th><th>Objetivo $</th><th>Facturación</th><th>Alcance %</th><th>Falta $</th><th>% del vendedor</th><th>Clientes con compra</th></tr></thead><tbody>${body}</tbody><tfoot><tr><td class="l">Total ${r.nom}</td><td>${r.obj?fmt$(r.obj):'—'}</td><td>${fmt$(tot)}</td><td>${chipA(tot,r.obj)}</td><td>${r.obj?fmt$(Math.max(r.obj-tot,0)):'—'}</td><td>100,0%</td><td>${fmtN(r.cc)}</td></tr></tfoot></table></td></tr>`;
+    return `<tr${f||o?'':' class="cero"'}><td class="l">${t}</td><td>${o?fmt$(o):'<span class="muted">—</span>'}</td><td>${fmt$(f)}<span class="cbar"><i style="width:${Math.max(f,0)/max*100}%"></i></span></td><td>${chipA(f,o)}</td><td>${o?fmt$(Math.max(o-f,0)):'<span class="muted">—</span>'}</td><td>${mgC(c)}</td><td>${tot?fmtP(f/tot):'—'}</td><td>${fmtN(cc)}</td></tr>`}).join('');
+  return `<tr class="cat"><td colspan="${COLS.length}"><table><thead><tr><th class="l">Categoría</th><th>Objetivo $</th><th>Facturación</th><th>Alcance %</th><th>Falta $</th><th>Margen %</th><th>% del vendedor</th><th>Clientes con compra</th></tr></thead><tbody>${body}</tbody><tfoot><tr><td class="l">Total ${r.nom}</td><td>${r.obj?fmt$(r.obj):'—'}</td><td>${fmt$(tot)}</td><td>${chipA(tot,r.obj)}</td><td>${r.obj?fmt$(Math.max(r.obj-tot,0)):'—'}</td><td>${r.marg==null?'—':pbarM(r.marg)}</td><td>100,0%</td><td>${fmtN(r.cc)}</td></tr></tfoot></table></td></tr>`;
 }
 
 function rows(){
