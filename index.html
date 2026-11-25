@@ -181,6 +181,15 @@ tr.ncr input[type=search]{width:100%;max-width:340px;margin-bottom:8px}
     <div id="ncPanel"></div>
   </div>
   </details>
+  <details class="desp" id="solMP">
+  <summary>Margen por producto</summary>
+  <div class="solbody">
+    <label>Vendedor <select id="mpSel" aria-label="Vendedor"></select></label>
+    <label style="margin-left:12px">Buscar <input id="mpQ" type="search" placeholder="Código o artículo" aria-label="Buscar producto"></label>
+    <p class="nnote">Venta neta sin IVA menos costo, por artículo (devoluciones descontadas). Tocá un título para ordenar.</p>
+    <div class="tbl"><table><thead id="mpHead"></thead><tbody id="mpBody"></tbody><tfoot id="mpFoot"></tfoot></table></div>
+  </div>
+  </details>
   <details class="desp" id="solBul">
   <summary>Bultos por categoría</summary>
   <div class="solbody">
@@ -297,7 +306,7 @@ function procesar(txt, nombre){
   const H=rows.shift().map(h=>h.trim()); const ix=n=>{const i=H.indexOf(n); if(i<0) throw new Error('Falta la columna '+n); return i;};
   const I={costo:H.indexOf('PrecioCosto'),cli:ix('Cliente'),emp:ix('Empresa'),fc:ix('FechaComprobante'),cod:ix('Codigo'),cant:ix('CantBase'),neto:ix('ImporteNetoItem'),bruto:ix('ImporteItem'),cv:ix('CodVendedor'),vn:ix('Vendedor'),art:ix('Articulo'),sup:ix('NomSupervisor'),fam:H.indexOf('Familia'),rs:H.indexOf('RazonSocial'),dir:H.indexOf('Direccion'),loc:H.indexOf('Localidad')};
   { const fac=rows.filter(r=>isoDe(r[I.fc])); rows.length=0; rows.push(...fac); }   // 25/11/2026 (pedido de Bruno): solo lo facturado, los pedidos sin facturar no se cuentan con ninguna fecha
-  const V={}, arts={}, vu={}, fechas=new Set(), allnet={}, NOMS={};
+  const V={}, arts={}, vu={}, vm={}, fechas=new Set(), allnet={}, NOMS={};
   // el CSV trae el mes por cualquiera de las tres fechas: se queda con el mes en curso (el de la ultima carga) segun la fecha elegida
   const ien=H.indexOf('FechaEntrega'), ica=H.indexOf('FechaCarga');
   let ymSel=''; rows.forEach(r=>{ const c=isoDe(ica>=0? r[ica] : r[I.fc]); if(c&&c<=HOY_ISO&&c.slice(0,7)>ymSel) ymSel=c.slice(0,7); });
@@ -320,7 +329,8 @@ function procesar(txt, nombre){
       if(FAC_MANUAL[ac]){ f=FAC_MANUAL[ac][0]; s=FAC_MANUAL[ac][1]; }
       else { const ms=[...a.matchAll(/(\d+)\s*[x\/]\s*(\d+)/ig)]; if(ms.length){ f=+ms[ms.length-1][2]||1; s='Del nombre del artículo'; } else { f=1; s='Sin dato en el nombre'; } }
       arts[ac]={c:+ac,a,f,s,u:0,k:ck}; }
-    if(VEND.includes(cv)){ arts[ac].u+=cant; const m=vu[cv]||(vu[cv]={}); m[ac]=(m[ac]||0)+cant; }
+    if(VEND.includes(cv)){ arts[ac].u+=cant; const m=vu[cv]||(vu[cv]={}); m[ac]=(m[ac]||0)+cant;
+      const mm=vm[cv]||(vm[cv]={}), x=mm[ac]||(mm[ac]={n:0,c:0}); x.n+=neto; if(I.costo>=0) x.c+=num(r[I.costo]); }   // margen por producto (pedido de Bruno, 25/11/2026)
   });
   // los vendedores sin venta en el dia elegido igual aparecen (con su objetivo del mes)
   for(const c of VEND) if(!V[c] && NOMS[c]) V[c]={cod:c,nom:NOMS[c][0],sup:NOMS[c][1],neto:0,cos:0,bruto:0,bultos:0,cli:{},cat:{},cid:{}};
@@ -340,7 +350,7 @@ function procesar(txt, nombre){
   const dTd= DIA? fs.filter(d=>d.startsWith(ym) && d<=DIA && (typeof PO==='undefined' || !PO || DH_FIJO[ym] || (d>=PO.d && d<=PO.h))).length : 0;
   let corte; const st=(nombre||'').match(/(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})\d{2}/);
   corte = st? `${st[3]}/${st[2]}/${st[1]} ${st[4]}:${st[5]}` : ult.split('-').reverse().join('/');
-  return {DATA:{v:lista,allnet}, CONV:{arts:Object.values(arts).filter(a=>a.u!==0), vu},
+  return {DATA:{v:lista,allnet}, CONV:{arts:Object.values(arts).filter(a=>a.u!==0), vu, vm, an:Object.fromEntries(Object.values(arts).map(a=>[a.c,[a.a,a.k]]))},
           META:{ym, mes:MESES[mo-1]+' '+y, dT:Math.max(dT,1), dTd:Math.max(dTd,1), dH, corte, nombre, dia:DIA, dias:fs.filter(d=>d.startsWith(ym)).reverse()}};
 }
 
@@ -578,7 +588,7 @@ function render(){
       miniBarras(porCat(ccCat).map(x=>({...x,tip:`${x.n}: ${fmtN(x.v)} clientes`})))]
   ].map(k=>`<div class="kpi kv" style="--kc:${k[0]}"><div class="l">${k[1]}</div><div class="v">${k[2]}</div><div class="n">${k[3]}</div>${k[4]||''}</div>`).join('');
 
-  renderSol(rs);
+  renderSol(rs); renderMP(rs);
   const miss = rs.length - withBase.length;
   $('note').style.display = miss? 'block':'none';
   $('note').textContent = `${rs.filter(r=>r.base==null).map(r=>r.cod+' '+r.nom).join(' y ')} no figura${miss>1?'n':''} en la base de clientes: no ${miss>1?'suman':'suma'} a la cobertura total. Podés cargarla en «Cargar base de clientes y objetivos en bloque», al pie.`;
@@ -590,6 +600,31 @@ $('tbody').addEventListener('input',e=>{const q=e.target.dataset.ncq;if(!q)retur
 $('tbody').addEventListener('click',e=>{const n=e.target.closest('[data-nc]');if(n){const c=+n.dataset.nc;abiertosNC.has(c)?abiertosNC.delete(c):abiertosNC.add(c);render();return;}
   const b=e.target.closest('[data-tg]');if(!b)return;const c=+b.dataset.tg;abiertos.has(c)?abiertos.delete(c):abiertos.add(c);render();});
 // Solapas debajo de la tabla: clientes sin compra por vendedor y bultos por categoria
+// ---- Margen por producto (pedido de Bruno, 25/11/2026) ----
+var mpSelV = '', mpSort = 'n', mpDir = -1;
+function renderMP(rs){
+  const vs=[...rs].sort((a,b)=>a.cod-b.cod);
+  if(mpSelV && !vs.some(v=>String(v.cod)===mpSelV)) mpSelV='';
+  $('mpSel').innerHTML='<option value="">Todos los vendedores</option>'+vs.map(v=>`<option value="${v.cod}"${String(v.cod)===mpSelV?' selected':''}>${v.cod} · ${escH(v.nom)}</option>`).join('');
+  const catN=Object.fromEntries(CATS.map(c=>[c[0],c[1]])), acc={};
+  for(const v of vs){ if(mpSelV && String(v.cod)!==mpSelV) continue;
+    for(const [ac,x] of Object.entries(CONV.vm[v.cod]||{})){ const a=acc[ac]||(acc[ac]={ac:+ac,n:0,c:0}); a.n+=x.n; a.c+=x.c; } }
+  const q=($('mpQ').value||'').toLowerCase();
+  let L=Object.values(acc).filter(a=>Math.abs(a.n)>0.5).map(a=>{ const an=CONV.an[a.ac]||['',''];
+    return {...a, art:an[0], cat:catN[an[1]]||'Otros', m:a.n-a.c, p:a.n? (a.n-a.c)/a.n : null}; })
+    .filter(a=>!q || (a.ac+' '+a.art+' '+a.cat).toLowerCase().includes(q));
+  L.sort((x,y)=>{ const a=x[mpSort], b=y[mpSort]; if(a==null) return 1; if(b==null) return -1; return (typeof a==='string'? a.localeCompare(b) : a-b)*mpDir; });
+  const C=[['ac','Código',1],['art','Artículo',1],['cat','Categoría',1],['n','Venta neta'],['c','Costo'],['m','Margen $'],['p','Margen %']];
+  $('mpHead').innerHTML='<tr>'+C.map(c=>`<th class="${c[2]?'l':''}" data-mp="${c[0]}" tabindex="0" style="cursor:pointer">${c[1]} ${mpSort===c[0]?(mpDir>0?'▲':'▼'):''}</th>`).join('')+'</tr>';
+  $('mpBody').innerHTML=L.length? L.map(a=>`<tr><td class="l cod">${a.ac}</td><td class="l">${escH(a.art)}</td><td class="l">${escH(a.cat)}</td><td>${fmt$(a.n)}</td><td>${fmt$(a.c)}</td><td>${fmt$(a.m)}</td><td>${a.p==null?'—':pbarM(a.p)}</td></tr>`).join('')
+    : '<tr><td class="l" colspan="7">Ningún producto coincide.</td></tr>';
+  const tn=L.reduce((s,a)=>s+a.n,0), tc=L.reduce((s,a)=>s+a.c,0);
+  $('mpFoot').innerHTML=`<tr><td class="l" colspan="3">Total (${L.length} productos)</td><td>${fmt$(tn)}</td><td>${fmt$(tc)}</td><td>${fmt$(tn-tc)}</td><td>${tn>0.5?pbarM((tn-tc)/tn):'—'}</td></tr>`;
+}
+$('mpSel').addEventListener('change',e=>{ mpSelV=e.target.value; render(); });
+$('mpQ').addEventListener('input',()=>render());
+$('mpHead').addEventListener('click',e=>{ const th=e.target.closest('th'); if(!th) return; const k=th.dataset.mp; if(mpSort===k) mpDir*=-1; else { mpSort=k; mpDir=(k==='art'||k==='cat'||k==='ac')?1:-1; } render(); });
+$('mpHead').addEventListener('keydown',e=>{ if(e.key==='Enter') e.target.closest('th')?.click(); });
 var ncSelV = null;
 function renderSol(rs){
   const vs=[...rs].sort((a,b)=>a.cod-b.cod);
